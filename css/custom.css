@@ -1,0 +1,41 @@
+.normal,
+.dimmed,
+header,
+body {
+  color: #fff;
+}
+
+body {
+  margin: 0px;
+  height: calc(100% - 0px);
+  width: calc(100% - 0px);
+
+}
+
+.module {
+  background-color:rgba(0,0,0,0.6);
+  border-radius:8px;
+  padding:10px;
+}
+
+.module.calendar {
+  margin-left: 100px;
+  font-size: 1.8em;
+}
+
+.module.MMM-Worldclock {
+  margin-top: -20px;
+  padding-right: 10px;
+  font-size: 1.7em;
+}
+
+.module.MMM-MicrosoftToDo {
+  font-size: 1.8em;
+}
+
+
+.MMM-ImmichSlideShow .bottomRight {
+  bottom: 400px !important;
+  right: 100px !important;
+  border-radius: 0px !important;
+}
