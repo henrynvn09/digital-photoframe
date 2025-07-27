@@ -4,9 +4,22 @@ my magicmirror config for a digital photoframe using a 27-in monitor. It sync go
 
 # required modules
 default
-MMM-mmpm 
 MMM-MicrosoftToDo
 MMM-Worldclock
 MMM-ImmichSlideShow 
 **henrynvn09/MMM-OpenWeatherMapForecast**
 
+# useful command, resources
+running mm on NAS
+```sh
+docker run -d --name magicmirror --publish 8036:8080 --restart unless-stopped -e TZ=America/Los_Angeles --volume /volume1/docker/magicmirror/config:/opt/magic_mirror/config --volume /volume1/docker/magicmirror/modules:/opt/magic_mirror/modules --volume /volume1/docker/magicmirror/css:/opt/magic_mirror/css karsten13/magicmirror:latest
+```
+
+
+I'm running server MM on NAS and Rasperry Pi as a client
+
+for client, after running [auto script](https://docs.magicmirror.builders/getting-started/installation.html#automatic-installation-scripts), we need to edit config file from `pm2 show mm`
+
+```sh
+node clientonly --address 192.168.1.5 --port 8080
+```
