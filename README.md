@@ -2,6 +2,24 @@ my magicmirror config for a digital photoframe using a 27-in monitor. It sync go
 
 <img src="https://github.com/user-attachments/assets/06a367d3-47bb-4454-9f28-7fd8bd04826f" height="500">
 
+
+# Config
+
+I'm running server MM on NAS and Rasperry Pi as a client
+
+## config Rasperry Pi Client
+for client, after running [auto script](https://docs.magicmirror.builders/getting-started/installation.html#automatic-installation-scripts), we need to edit config file from `pm2 show mm`
+
+```sh
+node clientonly --address 192.168.1.5 --port 8080
+```
+
+Then adding those script to `crontab`
+```sh
+0 8 * * * /home/user/turn_on_magic_mirror.sh
+0 21 * * * /home/user/turn_off_magic_mirror.sh
+```
+
 # required modules
 default
 MMM-MicrosoftToDo
@@ -15,11 +33,3 @@ running mm on NAS
 docker run -d --name magicmirror --publish 8036:8080 --restart unless-stopped -e TZ=America/Los_Angeles --volume /volume1/docker/magicmirror/config:/opt/magic_mirror/config --volume /volume1/docker/magicmirror/modules:/opt/magic_mirror/modules --volume /volume1/docker/magicmirror/css:/opt/magic_mirror/css karsten13/magicmirror:latest
 ```
 
-
-I'm running server MM on NAS and Rasperry Pi as a client
-
-for client, after running [auto script](https://docs.magicmirror.builders/getting-started/installation.html#automatic-installation-scripts), we need to edit config file from `pm2 show mm`
-
-```sh
-node clientonly --address 192.168.1.5 --port 8080
-```
