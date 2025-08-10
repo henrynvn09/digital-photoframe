@@ -8,7 +8,7 @@ my magicmirror config for a digital photoframe using a 27-in monitor. It sync go
 I'm running server MM on NAS and Rasperry Pi as a client
 
 ## config Rasperry Pi Client
-for client, after running [auto script](https://docs.magicmirror.builders/getting-started/installation.html#automatic-installation-scripts), we need to edit config file from `pm2 show mm`
+for client, after running [auto script](https://docs.magicmirror.builders/getting-started/installation.html#automatic-installation-scripts), we need to edit config file from `pm2 show mm` such as [my config](mm.sh)
 
 ```sh
 node clientonly --address 192.168.1.5 --port 8080
