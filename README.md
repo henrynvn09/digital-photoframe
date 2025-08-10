@@ -32,4 +32,4 @@ running mm on NAS
 ```sh
 docker run -d --name magicmirror --publish 8036:8080 --restart unless-stopped -e TZ=America/Los_Angeles --volume /volume1/docker/magicmirror/config:/opt/magic_mirror/config --volume /volume1/docker/magicmirror/modules:/opt/magic_mirror/modules --volume /volume1/docker/magicmirror/css:/opt/magic_mirror/css karsten13/magicmirror:latest
 ```
-
+Note that all modules inside docker must be ran `npm i` within the docker environment
