@@ -17,6 +17,6 @@ echo $! > /tmp/mm.pid
 echo "MagicMirror started with PID $(cat /tmp/mm.pid)"
 
 # run PIR script to turn monitor on
-nohup python3 $HOME/config-MagicMirror/pir-control-display/pir.py > $HOME/pir.log 2>&1 &
+nohup python3 $HOME/config-MagicMirror/client/pir-control-display/pir.py > $HOME/pir.log 2>&1 &
 echo $! > /tmp/pir.pid
 

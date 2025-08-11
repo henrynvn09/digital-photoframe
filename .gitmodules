@@ -1,15 +1,15 @@
-[submodule "modules/MMM-ImmichSlideShow"]
-	path = modules/MMM-ImmichSlideShow
+[submodule "server/modules/MMM-ImmichSlideShow"]
+	path = server/modules/MMM-ImmichSlideShow
 	url = https://github.com/pelaxa/MMM-ImmichSlideShow
-[submodule "modules/MMM-MicrosoftToDo"]
-	path = modules/MMM-MicrosoftToDo
+[submodule "server/modules/MMM-MicrosoftToDo"]
+	path = server/modules/MMM-MicrosoftToDo
 	url = https://github.com/thobach/MMM-MicrosoftToDo
-[submodule "modules/MMM-mmpm"]
-	path = modules/MMM-mmpm
+[submodule "server/modules/MMM-mmpm"]
+	path = server/modules/MMM-mmpm
 	url = https://github.com/Bee-Mar/mmpm
-[submodule "modules/MMM-OpenWeatherMapForecast"]
-	path = modules/MMM-OpenWeatherMapForecast
+[submodule "server/modules/MMM-OpenWeatherMapForecast"]
+	path = server/modules/MMM-OpenWeatherMapForecast
 	url = git@github.com:henrynvn09/MMM-OpenWeatherMapForecast.git
-[submodule "modules/MMM-Worldclock"]
-	path = modules/MMM-Worldclock
+[submodule "server/modules/MMM-Worldclock"]
+	path = server/modules/MMM-Worldclock
 	url = https://github.com/ulrichwisser/MMM-Worldclock

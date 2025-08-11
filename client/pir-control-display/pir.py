@@ -11,7 +11,7 @@ SHUTOFF_DELAY = 30*60  # seconds
 PIR_PIN = 24         # GPIO pin
 DEBUG = False        # set to False to silence debug output
 # ==============
-path = os.environ.get("PIR_PATH", "/home/hthh/config-MagicMirror")
+path = os.environ.get("PIR_PATH", "/home/hthh/config-MagicMirror/client")
 
 pir = MotionSensor(PIR_PIN)
 monitor_off = True
