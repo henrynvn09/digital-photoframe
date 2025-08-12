@@ -1,38 +1,35 @@
 #!/bin/bash
-# save as /home/pi/display_off.sh
-export DISPLAY=:0
+# Optimized MagicMirror shutdown script
 
-# Turn off HDMI display
+PID_DIR="/tmp"
+
+# Turn off display immediately
 /usr/bin/vcgencmd display_power 0
 
-# Stop MagicMirror via PM2
-echo "Stopping MagicMirror..."
-# Check if the pid file exists
-if [ -f "/tmp/mm.pid" ]; then
-    PID=$(cat /tmp/mm.pid)
-    if [ -n "$PID" ]; then
-        echo "Killing MagicMirror process with PID: $PID"
-        kill "$PID"
-        
-        # Remove the pid file after killing the process
-        rm /tmp/mm.pid
-        echo "Process terminated and pid file removed."
+# Function to kill process by PID file
+kill_by_pidfile() {
+    local pidfile="$1"
+    local process_name="$2"
+    
+    if [[ -f "$pidfile" ]]; then
+        local pid
+        pid=$(cat "$pidfile")
+        if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+            echo "Stopping $process_name (PID: $pid)"
+            kill "$pid"
+            rm -f "$pidfile"
+        else
+            echo "$process_name not running or PID invalid"
+            rm -f "$pidfile"
+        fi
     else
-        echo "Pid file is empty, no process to kill."
+        echo "No $process_name PID file found"
     fi
-else
-    echo "No pid file found. Is MagicMirror running?"
-fi
+}
 
+# Stop processes
+kill_by_pidfile "$PID_DIR/mm.pid" "MagicMirror"
+kill_by_pidfile "$PID_DIR/pir.pid" "PIR control"
 
-
-# Kill pir.py using saved PID
-if [[ -f /tmp/pir.pid ]]; then
-  pid=$(cat /tmp/pir.pid)
-  if kill -0 "$pid" 2>/dev/null; then
-    echo "Stopping PIR"
-    kill "$pid"
-    rm /tmp/pir.pid
-  fi
-fi
+echo "Shutdown complete"
 

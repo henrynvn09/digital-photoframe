@@ -1,14 +1,17 @@
 #!/bin/bash
-# auto script on client
-cd /home/hthh/MagicMirror
+# Optimized MagicMirror client startup script
 
-if [ $(ps -ef | grep -v grep | grep -i -e xway -e labwc | wc -l) -ne 0 ]; then
-   # if WAYLAND_DISPLAYis set, use it, else set to -0
-   export WAYLAND_DISPLAY=${WAYLAND_DISPLAY:=wayland-0}
-   npm run start:wayland
+MM_DIR="/home/hthh/MagicMirror"
+SERVER_IP="192.168.1.5"
+SERVER_PORT="8036"
+
+cd "$MM_DIR" || exit 1
+
+# Check for Wayland compositor once
+if pgrep -x "xway\|labwc" > /dev/null; then
+    export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
+    exec npm run start:wayland
 else
-   export DISPLAY=:0
-   node clientonly --address 192.168.1.5 --port 8036
+    export DISPLAY=:0
+    exec node clientonly --address "$SERVER_IP" --port "$SERVER_PORT"
 fi
-
-#DISPLAY=:0 npm start
