@@ -16,8 +16,12 @@ node clientonly --address 192.168.1.5 --port 8080
 
 Then adding those script to `crontab`
 ```sh
-0 8 * * * /home/user/turn_on_magic_mirror.sh
-0 21 * * * /home/user/turn_off_magic_mirror.sh
+## Weekends: ON at 8:00 AM, OFF at 8:45 PM
+0 8 * * 6,0 /bin/bash /home/pi/Code/magicmirror-config/client/turn_on_magic_mirror.sh >> /home/pi/magicmirror_start.log 2>&1
+45 20 * * 6,0  /bin/bash /home/pi/Code/magicmirror-config/client/turn_off_magic_mirror.sh >> /home/pi/magicmirror_stop.log  2>&1
+## Weekdays: ON at 4:00 PM, OFF at 8:45 PM
+0 16 * * 1-5 /bin/bash /home/pi/Code/magicmirror-config/client/turn_on_magic_mirror.sh >> /home/pi/magicmirror_start.log 2>&1
+45 20 * * 1-5 /bin/bash /home/pi/Code/magicmirror-config/client/turn_off_magic_mirror.sh >> /home/pi/magicmirror_stop.log  2>&1
 ```
 
 # required modules
