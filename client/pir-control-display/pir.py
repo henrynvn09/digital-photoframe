@@ -6,7 +6,7 @@ import signal
 from threading import Timer
 
 # === Config ===
-SHUTOFF_DELAY = 30 * 60  # seconds
+SHUTOFF_DELAY = 15 * 60  # seconds
 PIR_PIN = 24  # GPIO pin
 DEBUG = False  # set to False to silence debug output
 VCGENCMD = "/usr/bin/vcgencmd"

@@ -8,7 +8,7 @@ IFS=$'\n\t'
 # Configuration
 HOME_DIR="${HOME}"
 MM_DIR="${HOME_DIR}/MagicMirror"
-CONFIG_DIR="${HOME_DIR}/config-MagicMirror/client"
+CONFIG_DIR="${HOME_DIR}/magicmirror-config/client"
 ADDRESS="192.168.4.45"
 PORT="8036"
 PID_DIR="/tmp"
