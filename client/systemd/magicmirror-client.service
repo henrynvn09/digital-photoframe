@@ -5,14 +5,14 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
+User=__USER__
 Environment="DISPLAY=:0"
-Environment="XAUTHORITY=/home/pi/.Xauthority"
-Environment="XDG_RUNTIME_DIR=/run/user/1000"
-WorkingDirectory=/home/pi/Code/digital-photoframe/client
-ExecStartPre=/bin/bash /home/pi/Code/digital-photoframe/client/check_server.sh 10 5
+Environment="XAUTHORITY=/home/__USER__/.Xauthority"
+Environment="XDG_RUNTIME_DIR=/run/user/__UID__"
+WorkingDirectory=__INSTALL_DIR__
+ExecStartPre=/bin/bash __INSTALL_DIR__/check_server.sh 10 5
 ExecStartPre=/usr/bin/vcgencmd display_power 0
-ExecStart=/bin/bash /home/pi/Code/digital-photoframe/client/mm.sh
+ExecStart=/bin/bash __INSTALL_DIR__/mm.sh
 Restart=on-failure
 RestartSec=10s
 StartLimitBurst=3

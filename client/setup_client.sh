@@ -52,7 +52,7 @@ print_info() {
 
 ask_yes_no() {
     local prompt="$1"
-    local default="${2:-n}"
+    local default="${2:-y}"
     
     if [[ "$default" == "y" ]]; then
         prompt="$prompt [Y/n]: "
@@ -87,7 +87,7 @@ preflight_checks() {
     # Check if running on Raspberry Pi
     if [[ ! -f /proc/cpuinfo ]] || ! grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null; then
         print_warning "This doesn't appear to be a Raspberry Pi"
-        if ! ask_yes_no "Continue anyway?"; then
+        if ! ask_yes_no "Continue anyway?" "n"; then
             exit 1
         fi
     else
@@ -473,9 +473,17 @@ configure_systemd() {
         "magicmirror-off.timer"
     )
     
+    # Get current user's UID for XDG_RUNTIME_DIR
+    local user_uid
+    user_uid=$(id -u)
+    
     for file in "${service_files[@]}" "${timer_files[@]}"; do
         if [[ -f "$SCRIPT_DIR/systemd/$file" ]]; then
-            sudo cp "$SCRIPT_DIR/systemd/$file" /etc/systemd/system/
+            # Replace placeholders with actual values
+            sed -e "s|__USER__|${USER}|g" \
+                -e "s|__UID__|${user_uid}|g" \
+                -e "s|__INSTALL_DIR__|${SCRIPT_DIR}|g" \
+                "$SCRIPT_DIR/systemd/$file" | sudo tee "/etc/systemd/system/$file" > /dev/null
             print_success "Installed: $file"
         else
             print_warning "File not found: $file"

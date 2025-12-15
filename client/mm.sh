@@ -3,10 +3,11 @@
 # Updated version with server connectivity check and forced X11 mode
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MM_DIR="${HOME}/MagicMirror"
 SERVER_IP="192.168.4.45"
 SERVER_PORT="8036"
-CONFIG_DIR="${HOME}/Code/digital-photoframe/client"
+CONFIG_DIR="${SCRIPT_DIR}"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 

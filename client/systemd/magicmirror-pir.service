@@ -6,9 +6,9 @@ PartOf=magicmirror-client.service
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/Code/digital-photoframe/client/pir-control-display
-ExecStart=/usr/bin/python3 /home/pi/Code/digital-photoframe/client/pir-control-display/pir.py
+User=__USER__
+WorkingDirectory=__INSTALL_DIR__/pir-control-display
+ExecStart=/usr/bin/python3 __INSTALL_DIR__/pir-control-display/pir.py
 Restart=on-failure
 RestartSec=5s
 

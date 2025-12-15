@@ -52,7 +52,7 @@ print_info() {
 
 ask_yes_no() {
     local prompt="$1"
-    local default="${2:-n}"
+    local default="${2:-y}"
     
     if [[ "$default" == "y" ]]; then
         prompt="$prompt [Y/n]: "
@@ -79,18 +79,94 @@ stop_processes() {
     print_header "Stopping Running Processes"
     
     local stopped_any=false
+    local PID_FILE="/tmp/mm_pids.txt"
+    local OLD_MM_PID_FILE="/tmp/mm.pid"
+    local OLD_PIR_PID_FILE="/tmp/pir.pid"
     
-    # Stop MagicMirror client processes
-    if pgrep -f "electron.*client-only" > /dev/null; then
-        print_info "Stopping MagicMirror client processes..."
-        pkill -9 -f "electron.*client-only" || true
+    # Try to stop processes using PID file (new format)
+    if [[ -f "${PID_FILE}" ]]; then
+        print_info "Found PID file: ${PID_FILE}"
+        
+        # Parse PIDs from file
+        local NPM_PID=""
+        local ELECTRON_PID=""
+        local PIR_PID=""
+        
+        while IFS=: read -r type pid; do
+            case "${type}" in
+                NPM) NPM_PID="${pid}" ;;
+                ELECTRON) ELECTRON_PID="${pid}" ;;
+                PIR) PIR_PID="${pid}" ;;
+            esac
+        done < "${PID_FILE}"
+        
+        # Stop PIR sensor first
+        if [[ -n "${PIR_PID}" ]] && kill -0 "${PIR_PID}" 2>/dev/null; then
+            print_info "Stopping PIR sensor (PID: ${PIR_PID})..."
+            kill -9 "${PIR_PID}" 2>/dev/null || true
+            print_success "PIR sensor stopped"
+            stopped_any=true
+        fi
+        
+        # Stop electron process
+        if [[ -n "${ELECTRON_PID}" ]] && kill -0 "${ELECTRON_PID}" 2>/dev/null; then
+            print_info "Stopping MagicMirror electron (PID: ${ELECTRON_PID})..."
+            kill -9 "${ELECTRON_PID}" 2>/dev/null || true
+            print_success "Electron process stopped"
+            stopped_any=true
+        fi
+        
+        # Stop npm parent process
+        if [[ -n "${NPM_PID}" ]] && kill -0 "${NPM_PID}" 2>/dev/null; then
+            print_info "Stopping npm parent (PID: ${NPM_PID})..."
+            kill -9 "${NPM_PID}" 2>/dev/null || true
+            print_success "npm process stopped"
+            stopped_any=true
+        fi
+        
+        # Remove PID file
+        rm -f "${PID_FILE}"
+        print_success "Removed PID file: ${PID_FILE}"
+        
+    # Handle old PID files (backward compatibility)
+    elif [[ -f "${OLD_MM_PID_FILE}" ]] || [[ -f "${OLD_PIR_PID_FILE}" ]]; then
+        print_info "Found old-format PID files"
+        
+        if [[ -f "${OLD_MM_PID_FILE}" ]]; then
+            local OLD_MM_PID
+            OLD_MM_PID=$(cat "${OLD_MM_PID_FILE}")
+            if kill -0 "${OLD_MM_PID}" 2>/dev/null; then
+                print_info "Stopping MagicMirror (PID: ${OLD_MM_PID})..."
+                kill -9 "${OLD_MM_PID}" 2>/dev/null || true
+                print_success "MagicMirror stopped"
+                stopped_any=true
+            fi
+            rm -f "${OLD_MM_PID_FILE}"
+        fi
+        
+        if [[ -f "${OLD_PIR_PID_FILE}" ]]; then
+            local OLD_PIR_PID
+            OLD_PIR_PID=$(cat "${OLD_PIR_PID_FILE}")
+            if kill -0 "${OLD_PIR_PID}" 2>/dev/null; then
+                print_info "Stopping PIR sensor (PID: ${OLD_PIR_PID})..."
+                kill -9 "${OLD_PIR_PID}" 2>/dev/null || true
+                print_success "PIR sensor stopped"
+                stopped_any=true
+            fi
+            rm -f "${OLD_PIR_PID_FILE}"
+        fi
+    fi
+    
+    # Fallback: aggressive cleanup if no PID files found or processes still running
+    if pgrep -f "electron.*js/electron.js" > /dev/null; then
+        print_info "Stopping MagicMirror client processes (fallback)..."
+        pkill -9 -f "electron.*js/electron.js" || true
         print_success "MagicMirror client stopped"
         stopped_any=true
     fi
     
-    # Stop PIR sensor script
     if pgrep -f "pir.py" > /dev/null; then
-        print_info "Stopping PIR sensor script..."
+        print_info "Stopping PIR sensor script (fallback)..."
         pkill -9 -f "pir.py" || true
         print_success "PIR sensor script stopped"
         stopped_any=true
@@ -153,7 +229,7 @@ remove_systemd() {
     done
     echo ""
     
-    if ! ask_yes_no "Remove systemd services?"; then
+    if ! ask_yes_no "Remove systemd services?" "n"; then
         print_info "Skipping systemd removal"
         echo ""
         return
@@ -210,7 +286,7 @@ remove_cron() {
     crontab -l 2>/dev/null | grep "magicmirror\|magic_mirror\|MagicMirror" || true
     echo ""
     
-    if ! ask_yes_no "Remove cron jobs?"; then
+    if ! ask_yes_no "Remove cron jobs?" "n"; then
         print_info "Skipping cron removal"
         echo ""
         return
@@ -249,6 +325,9 @@ cleanup_logs() {
         "${HOME}/magicmirror_stop.log"
         "/tmp/magicmirror.log"
         "/tmp/pir.log"
+        "/tmp/mm_pids.txt"
+        "/tmp/mm.pid"
+        "/tmp/pir.pid"
     )
     
     local found_any=false
@@ -273,7 +352,7 @@ cleanup_logs() {
     done
     echo ""
     
-    if ! ask_yes_no "Remove log files?"; then
+    if ! ask_yes_no "Remove log files?" "n"; then
         print_info "Keeping log files"
         echo ""
         return
@@ -359,7 +438,7 @@ EOF
     print_warning "This will remove your MagicMirror client configuration"
     echo ""
     
-    if ! ask_yes_no "Continue with uninstall?"; then
+    if ! ask_yes_no "Continue with uninstall?" "n"; then
         print_info "Uninstall cancelled"
         exit 0
     fi

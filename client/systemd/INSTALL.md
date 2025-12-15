@@ -28,9 +28,11 @@ This guide explains how to migrate from cron-based scheduling to systemd service
 ## Prerequisites
 
 1. **Raspberry Pi OS** with systemd (default on modern versions)
-2. **MagicMirror** installed at `/home/pi/MagicMirror`
-3. **This repository** cloned to `/home/pi/Code/digital-photoframe`
+2. **MagicMirror** installed at `~/MagicMirror`
+3. **This repository** cloned to your preferred location (e.g., `~/magicmirror-config`)
 4. **Root/sudo access** for systemd installation
+
+**Note:** The automated setup script (`setup_client.sh`) handles path configuration automatically. Manual installation steps below assume you've cloned this repo to `~/magicmirror-config` - adjust paths as needed for your setup.
 
 ---
 
@@ -45,10 +47,10 @@ First, disable cron jobs to prevent conflicts:
 crontab -e
 
 # Comment out (add # at start of line) all MagicMirror related cron jobs:
-# 0 8 * * 6,0 /bin/bash /home/pi/Code/digital-photoframe/client/turn_on_magic_mirror.sh >> /home/pi/magicmirror_start.log 2>&1
-# 45 20 * * 6,0  /bin/bash /home/pi/Code/digital-photoframe/client/turn_off_magic_mirror.sh >> /home/pi/magicmirror_stop.log  2>&1
-# 0 16 * * 1-5 /bin/bash /home/pi/Code/digital-photoframe/client/turn_on_magic_mirror.sh >> /home/pi/magicmirror_start.log 2>&1
-# 45 20 * * 1-5 /bin/bash /home/pi/Code/digital-photoframe/client/turn_off_magic_mirror.sh >> /home/pi/magicmirror_stop.log  2>&1
+# 0 8 * * 6,0 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
+# 45 20 * * 6,0  /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log  2>&1
+# 0 16 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
+# 45 20 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log  2>&1
 
 # Save and exit
 ```
@@ -57,20 +59,34 @@ crontab -e
 
 ### Step 2: Install Systemd Service Files
 
+**RECOMMENDED:** Use the automated setup script:
+
 ```bash
-# Navigate to the systemd directory
-cd ~/Code/digital-photoframe/client/systemd
+# Run the setup script - it handles path configuration automatically
+cd ~/magicmirror-config/client
+./setup_client.sh
+```
 
-# Copy service files to systemd directory
-sudo cp magicmirror-client.service /etc/systemd/system/
-sudo cp magicmirror-pir.service /etc/systemd/system/
-sudo cp magicmirror-on@.service /etc/systemd/system/
-sudo cp magicmirror-off.service /etc/systemd/system/
+**OR** Install manually (adjust paths to match your installation directory):
 
-# Copy timer files
-sudo cp magicmirror-on@weekend.timer /etc/systemd/system/
-sudo cp magicmirror-on@weekday.timer /etc/systemd/system/
-sudo cp magicmirror-off.timer /etc/systemd/system/
+```bash
+# Navigate to the systemd directory (adjust path as needed)
+cd ~/magicmirror-config/client/systemd
+
+# IMPORTANT: The service files contain placeholders (__USER__, __INSTALL_DIR__)
+# You MUST use the setup_client.sh script OR manually replace these placeholders:
+# __USER__ -> your username (e.g., pi, hthh)
+# __UID__ -> your user ID (run: id -u)
+# __INSTALL_DIR__ -> full path to client directory (e.g., /home/pi/magicmirror-config/client)
+
+# Example manual installation (NOT RECOMMENDED):
+# sed -e "s|__USER__|$(whoami)|g" \
+#     -e "s|__UID__|$(id -u)|g" \
+#     -e "s|__INSTALL_DIR__|$(pwd)/..|g" \
+#     magicmirror-client.service | sudo tee /etc/systemd/system/magicmirror-client.service > /dev/null
+
+# Repeat for all service and timer files...
+# (This is why we recommend using setup_client.sh instead!)
 
 # Reload systemd to recognize new files
 sudo systemctl daemon-reload
@@ -237,11 +253,11 @@ journalctl -xeu magicmirror-client.service
 
 # 2. Display environment not set
 #    - Check if X11 is running: echo $DISPLAY
-#    - Try running manually: DISPLAY=:0 ~/Code/digital-photoframe/client/mm.sh
+#    - Try running manually: DISPLAY=:0 ~/magicmirror-config/client/mm.sh
 
 # 3. Permission issues
-#    - Check script permissions: ls -l ~/Code/digital-photoframe/client/*.sh
-#    - Make executable: chmod +x ~/Code/digital-photoframe/client/*.sh
+#    - Check script permissions: ls -l ~/magicmirror-config/client/*.sh
+#    - Make executable: chmod +x ~/magicmirror-config/client/*.sh
 ```
 
 ### PIR Service Fails
@@ -262,7 +278,7 @@ journalctl -xeu magicmirror-pir.service
 #    - Install gpiozero: pip3 install gpiozero
 
 # 3. PIR script path wrong
-#    - Verify path: ls -l ~/Code/digital-photoframe/client/pir-control-display/pir.py
+#    - Verify path: ls -l ~/magicmirror-config/client/pir-control-display/pir.py
 ```
 
 ### Timers Not Firing
@@ -324,7 +340,7 @@ journalctl -xeu magicmirror-client.service -n 100
 sudo systemctl stop magicmirror-client.service
 
 # Run manually to see errors:
-DISPLAY=:0 ~/Code/digital-photoframe/client/mm.sh
+DISPLAY=:0 ~/magicmirror-config/client/mm.sh
 
 # Common causes:
 # - Server unreachable (check network)
@@ -460,7 +476,7 @@ If you encounter issues not covered here:
 
 1. **Check logs first:** `journalctl -xeu magicmirror-client.service`
 2. **Verify server reachable:** `nc -zv 192.168.4.45 8036`
-3. **Test scripts manually:** `~/Code/digital-photoframe/client/mm.sh`
-4. **Check file permissions:** `ls -l ~/Code/digital-photoframe/client/*.sh`
+3. **Test scripts manually:** `~/magicmirror-config/client/mm.sh`
+4. **Check file permissions:** `ls -l ~/magicmirror-config/client/*.sh`
 
 For further assistance, check the main README.md or AGENTS.md files.
