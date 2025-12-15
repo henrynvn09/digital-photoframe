@@ -29,9 +29,11 @@ Create a family digital photo frame that displays:
 - Connects to NAS server at 192.168.4.45:8036
 - Runs in client-only mode (no local server)
 - **Uses X11 mode** (forced for optimal Pi 3B performance)
-- Scheduled startup/shutdown using systemd timers:
-  - **Weekends**: ON at 8:00 AM, OFF at 8:45 PM
-  - **Weekdays**: ON at 4:00 PM, OFF at 8:45 PM
+- **Scheduled startup/shutdown** using unified systemd service:
+  - Single always-running service monitors schedule every 30 seconds
+  - Automatically starts/stops MagicMirror based on configured times
+  - **Default schedule**: Weekends 8:00 AM - 8:45 PM, Weekdays 4:00 PM - 8:45 PM
+  - Configurable via `client/schedule.conf`
 - PIR motion sensor on GPIO pin 24 for smart display control
 - **Auto-restart on crash** (systemd service management)
 
@@ -79,16 +81,11 @@ digital-photoframe/
 │   │   ├── pir.py             # PIR motion sensor control script
 │   │   ├── turn_on_display.sh # Manual display on script
 │   │   └── turn_off_display.sh# Manual display off script
-│   ├── systemd/                # NEW: Systemd service files (optional)
-│   │   ├── INSTALL.md         # Installation guide for systemd
-│   │   ├── magicmirror-client.service
-│   │   ├── magicmirror-pir.service
-│   │   ├── magicmirror-on@.service
-│   │   ├── magicmirror-off.service
-│   │   ├── magicmirror-on@weekend.timer
-│   │   ├── magicmirror-on@weekday.timer
-│   │   └── magicmirror-off.timer
-│   ├── check_server.sh        # NEW: Server connectivity checker
+│   ├── systemd/
+│   │   └── magicmirror.service # Unified systemd service for scheduling
+│   ├── schedule.conf          # Schedule configuration (weekday/weekend times)
+│   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
+│   ├── check_server.sh        # Server connectivity checker
 │   ├── mm.sh                  # MagicMirror client startup script
 │   ├── turn_on_magic_mirror.sh# Start MagicMirror client + PIR
 │   └── turn_off_magic_mirror.sh# Stop MagicMirror client + PIR
@@ -139,26 +136,23 @@ tail -f /tmp/pir.log
 ./client/check_server.sh
 ```
 
-#### Systemd Services (Automatic Scheduling)
+#### Systemd Service (Automatic Scheduling)
 ```bash
-# Start/stop services manually
-sudo systemctl start magicmirror-client.service
-sudo systemctl stop magicmirror-client.service
+# View service status
+systemctl status magicmirror.service
 
-# Check service status
-systemctl status magicmirror-client.service
-systemctl status magicmirror-pir.service
+# View logs in real-time
+journalctl -fu magicmirror.service
 
-# View logs (much better than tail!)
-journalctl -u magicmirror-client.service -n 50
-journalctl -fu magicmirror-client.service  # Follow mode
+# View recent logs
+journalctl -u magicmirror.service -n 50
 
-# Check timer schedule
-systemctl list-timers magicmirror-*
+# Restart service (after config change)
+sudo systemctl restart magicmirror.service
 
-# Enable/disable timers
-sudo systemctl enable magicmirror-on@weekend.timer
-sudo systemctl disable magicmirror-on@weekend.timer
+# Enable/disable auto-start on boot
+sudo systemctl enable magicmirror.service
+sudo systemctl disable magicmirror.service
 ```
 
 ### Testing Changes
@@ -215,18 +209,27 @@ sudo systemctl disable magicmirror-on@weekend.timer
 - IP whitelist must include Pi's IP for remote access
 - Server connectivity is checked before MagicMirror starts (5 attempts, 3-second delay)
 
-### Systemd Timer Schedule (Raspberry Pi)
+### Schedule Configuration (Raspberry Pi)
 
-Schedule is configured via systemd timer files in `/etc/systemd/system/`:
-- **Weekends**: `magicmirror-on@weekend.timer` - ON at 8:00 AM
-- **Weekdays**: `magicmirror-on@weekday.timer` - ON at 4:00 PM  
-- **Every day**: `magicmirror-off.timer` - OFF at 8:45 PM
+Schedule is configured in `client/schedule.conf`:
+```ini
+WEEKEND_ON_HOUR=8
+WEEKEND_ON_MIN=0
+WEEKDAY_ON_HOUR=16
+WEEKDAY_ON_MIN=0
+OFF_HOUR=20
+OFF_MIN=45
+```
 
-To modify schedule times, edit the timer files and reload systemd:
+- **Weekends** (Sat/Sun): Turns ON at configured weekend time, OFF at configured off time
+- **Weekdays** (Mon-Fri): Turns ON at configured weekday time, OFF at configured off time
+- Schedule is checked every 30 seconds by the systemd service
+- Changes take effect after restarting the service: `sudo systemctl restart magicmirror.service`
+
+To modify schedule times:
 ```bash
-sudo nano /etc/systemd/system/magicmirror-on@weekend.timer
-sudo systemctl daemon-reload
-sudo systemctl restart magicmirror-on@weekend.timer
+nano ~/magicmirror-config/client/schedule.conf
+sudo systemctl restart magicmirror.service
 ```
 
 ### PIR Sensor Configuration
@@ -285,7 +288,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 - **Add calendar**: Add new object to calendars array
 - **Change weather location**: Update latitude/longitude
 - **Adjust display timeout**: Modify SHUTOFF_DELAY in pir.py
-- **Change schedule**: Edit systemd timer files in /etc/systemd/system/
+- **Change schedule**: Edit `client/schedule.conf` and restart service
 
 ## Troubleshooting
 
@@ -296,7 +299,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 **Root Cause:** MagicMirror client crashes immediately on startup due to incorrect launch method
 
 **Solution:**
-1. Check logs: `tail -100 ~/magicmirror_start.log` or `journalctl -u magicmirror-client.service -n 100`
+1. Check logs: `tail -100 ~/magicmirror_start.log` or `journalctl -u magicmirror.service -n 100`
 2. Look for error: `"clientonly is not running code null"` - indicates Electron startup failure
 3. **Fixed in current version** by using npm scripts instead of direct Electron launch
 4. Ensure `check_server.sh` confirms server connectivity before starting
@@ -339,7 +342,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 **Solutions:**
 1. Check PIR service status:
    ```bash
-   systemctl status magicmirror-pir.service
+   systemctl status magicmirror.service
    # Or check process directly
    ps aux | grep pir.py
    ```
@@ -367,11 +370,10 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 
 ### Viewing Logs
 
-**Systemd (recommended):**
+**Systemd:**
 ```bash
-journalctl -u magicmirror-client.service -n 50
-journalctl -fu magicmirror-client.service  # Follow mode
-journalctl -u magicmirror-pir.service -n 50
+journalctl -u magicmirror.service -n 50
+journalctl -fu magicmirror.service  # Follow mode
 ```
 
 **Manual script logs** (if not using systemd scheduling):

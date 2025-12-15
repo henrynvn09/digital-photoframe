@@ -12,7 +12,7 @@ My MagicMirror configuration for a digital photo frame using a 27-inch monitor. 
 - 🌤️ **Weather Forecast** - OpenWeatherMap integration
 - 🌍 **World Clock** - Shows Vietnam time with flag
 - 👋 **PIR Motion Sensor** - Automatically turns display on/off based on motion
-- ⏰ **Auto Scheduling** - Different schedules for weekdays and weekends
+- ⏰ **Auto Scheduling** - Schedule-aware service, different times for weekdays/weekends
 - 🔄 **Auto-Restart** - Automatically recovers from crashes (with systemd)
 
 ## Architecture
@@ -56,7 +56,7 @@ The setup script will:
 - ✅ Install required dependencies (python3, gpiozero, netcat)
 - ✅ Configure GPIO permissions for PIR sensor
 - ✅ Test connectivity to your MagicMirror server
-- ✅ Set up automatic scheduling with systemd
+- ✅ Configure schedule and install unified systemd service
 - ✅ Make all scripts executable
 
 **Follow the on-screen prompts** - the script will ask for your permission before making changes.
@@ -139,19 +139,13 @@ Run these commands from your shell:
 
 ### View Logs
 
-**Systemd (recommended):**
+**Systemd:**
 ```bash
 # View MagicMirror logs
-journalctl -u magicmirror-client.service -n 50
+journalctl -u magicmirror.service -n 50
 
 # Follow logs in real-time
-journalctl -fu magicmirror-client.service
-
-# View PIR sensor logs
-journalctl -u magicmirror-pir.service -n 50
-
-# Check timer schedule
-systemctl list-timers magicmirror-*
+journalctl -fu magicmirror.service
 ```
 
 **Manual script logs** (debug mode only):
@@ -165,14 +159,13 @@ tail -f /tmp/pir.log
 
 ### Modify Schedule
 
-Edit the systemd timer files:
+Edit the schedule configuration file:
 ```bash
-# Edit timer file
-sudo nano /etc/systemd/system/magicmirror-on@weekend.timer
+# Edit schedule times
+nano ~/magicmirror-config/client/schedule.conf
 
-# Reload and restart
-sudo systemctl daemon-reload
-sudo systemctl restart magicmirror-on@weekend.timer
+# Restart service to apply changes
+sudo systemctl restart magicmirror.service
 ```
 
 ---
@@ -252,14 +245,14 @@ vcgencmd display_power 1   # Turn on
 vcgencmd display_power 0   # Turn off
 
 # Check PIR service status (systemd)
-systemctl status magicmirror-pir.service
+systemctl status magicmirror.service
 ```
 
 ### View Detailed Error Logs
 
 ```bash
 # Systemd
-journalctl -xeu magicmirror-client.service -n 100
+journalctl -xeu magicmirror.service -n 100
 
 # Manual script logs (debug mode)
 tail -100 /tmp/magicmirror.log
@@ -280,13 +273,13 @@ digital-photoframe/
 │   └── css/
 │       └── custom.css         # Custom styling
 ├── client/
-│   ├── systemd/               # Systemd service files (optional)
-│   │   ├── INSTALL.md
-│   │   ├── *.service
-│   │   └── *.timer
+│   ├── systemd/
+│   │   └── magicmirror.service  # Unified systemd service
 │   ├── pir-control-display/
 │   │   ├── pir.py             # PIR motion sensor script
 │   │   └── turn_*_display.sh  # Manual display control
+│   ├── schedule.conf          # Schedule configuration (weekday/weekend times)
+│   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
 │   ├── setup_client.sh        # Automated setup script
 │   ├── check_server.sh        # Server connectivity checker
 │   ├── mm.sh                  # MagicMirror client launcher
@@ -315,7 +308,7 @@ Default schedule:
 - **Weekends**: ON at 8:00 AM, OFF at 8:45 PM
 - **Weekdays**: ON at 4:00 PM, OFF at 8:45 PM
 
-Modify in systemd timer files (see [Usage](#modify-schedule) section).
+Modify by editing `client/schedule.conf` and restarting the service (see [Usage](#modify-schedule) section).
 
 ### PIR Timeout
 
@@ -350,5 +343,4 @@ MIT License - See repository for details
 For issues or questions:
 1. Check [AGENTS.md](AGENTS.md) for detailed technical documentation
 2. Review [Troubleshooting](#troubleshooting) section above
-3. Check logs: `tail -f ~/magicmirror_start.log`
-4. For systemd: See `client/systemd/INSTALL.md`
+3. Check logs: `journalctl -fu magicmirror.service`

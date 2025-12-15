@@ -1,0 +1,24 @@
+# MagicMirror Schedule Configuration
+# This file defines when MagicMirror should be running
+# Times are in 24-hour format (HH and MM as separate values)
+
+# Weekend (Saturday, Sunday) ON time
+WEEKEND_ON_HOUR=8
+WEEKEND_ON_MIN=0
+
+# Weekday (Monday-Friday) ON time
+WEEKDAY_ON_HOUR=16
+WEEKDAY_ON_MIN=0
+
+# Daily OFF time (applies every day)
+OFF_HOUR=20
+OFF_MIN=45
+
+# Notes:
+# - After changing this file, restart the service: sudo systemctl restart magicmirror.service
+# - Valid hours: 0-23 (midnight = 0, noon = 12, 11 PM = 23)
+# - Valid minutes: 0-59
+# - Schedule example:
+#   Weekends: ON at 8:00 AM (WEEKEND_ON_HOUR=8, WEEKEND_ON_MIN=0)
+#   Weekdays: ON at 4:00 PM (WEEKDAY_ON_HOUR=16, WEEKDAY_ON_MIN=0)
+#   Every day: OFF at 8:45 PM (OFF_HOUR=20, OFF_MIN=45)

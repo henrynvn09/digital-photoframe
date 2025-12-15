@@ -1,8 +1,7 @@
 #!/bin/bash
 # MagicMirror Client Uninstall Script for Raspberry Pi
 # This script removes MagicMirror client configuration including:
-# - Systemd services and timers
-# - Cron jobs
+# - Systemd service
 # - Running processes
 # Note: This does NOT uninstall dependencies (Node.js, npm, etc.)
 
@@ -189,80 +188,47 @@ stop_processes() {
 }
 
 # ============================================================================
-# Remove Systemd Services
+# Remove Systemd Service
 # ============================================================================
 
 remove_systemd() {
-    print_header "Removing Systemd Services"
+    print_header "Removing Systemd Service"
     
-    # Check if any systemd services are installed
-    local systemd_files=(
-        "magicmirror-client.service"
-        "magicmirror-pir.service"
-        "magicmirror-on@.service"
-        "magicmirror-on@weekend.timer"
-        "magicmirror-on@weekday.timer"
-        "magicmirror-off.service"
-        "magicmirror-off.timer"
-    )
-    
-    local found_any=false
-    for file in "${systemd_files[@]}"; do
-        if [[ -f "/etc/systemd/system/$file" ]]; then
-            found_any=true
-            break
-        fi
-    done
-    
-    if [[ "$found_any" == false ]]; then
-        print_info "No systemd services found"
+    # Check if systemd service is installed
+    if [[ ! -f "/etc/systemd/system/magicmirror.service" ]]; then
+        print_info "No systemd service found"
         echo ""
         return
     fi
     
-    print_warning "The following systemd services will be removed:"
-    for file in "${systemd_files[@]}"; do
-        if [[ -f "/etc/systemd/system/$file" ]]; then
-            echo "  - $file"
-        fi
-    done
+    print_warning "The following systemd service will be removed:"
+    echo "  - magicmirror.service"
     echo ""
     
-    if ! ask_yes_no "Remove systemd services?" "n"; then
+    if ! ask_yes_no "Remove systemd service?" "n"; then
         print_info "Skipping systemd removal"
         echo ""
         return
     fi
     
-    # Stop and disable timers
-    print_info "Stopping and disabling timers..."
-    sudo systemctl stop magicmirror-on@weekend.timer 2>/dev/null || true
-    sudo systemctl stop magicmirror-on@weekday.timer 2>/dev/null || true
-    sudo systemctl stop magicmirror-off.timer 2>/dev/null || true
+    # Stop service if running
+    print_info "Stopping service..."
+    sudo systemctl stop magicmirror.service 2>/dev/null || true
     
-    sudo systemctl disable magicmirror-on@weekend.timer 2>/dev/null || true
-    sudo systemctl disable magicmirror-on@weekday.timer 2>/dev/null || true
-    sudo systemctl disable magicmirror-off.timer 2>/dev/null || true
+    # Disable service
+    print_info "Disabling service..."
+    sudo systemctl disable magicmirror.service 2>/dev/null || true
     
-    # Stop services if running
-    print_info "Stopping services..."
-    sudo systemctl stop magicmirror-client.service 2>/dev/null || true
-    sudo systemctl stop magicmirror-pir.service 2>/dev/null || true
-    
-    # Remove service files
-    print_info "Removing service files..."
-    for file in "${systemd_files[@]}"; do
-        if [[ -f "/etc/systemd/system/$file" ]]; then
-            sudo rm -f "/etc/systemd/system/$file"
-            print_success "Removed: $file"
-        fi
-    done
+    # Remove service file
+    print_info "Removing service file..."
+    sudo rm -f "/etc/systemd/system/magicmirror.service"
+    print_success "Removed: magicmirror.service"
     
     # Reload systemd
     print_info "Reloading systemd daemon..."
     sudo systemctl daemon-reload
     
-    print_success "Systemd services removed"
+    print_success "Systemd service removed"
     REMOVED_SYSTEMD=true
     echo ""
 }
@@ -374,7 +340,7 @@ main() {
 ║                                                              ║
 ║  This script will remove MagicMirror client configuration:  ║
 ║    • Stop running processes                                 ║
-║    • Remove systemd services and timers                     ║
+║    • Remove systemd service                                 ║
 ║    • Clean up log files                                     ║
 ║                                                              ║
 ║  Note: This will NOT remove installed packages or the       ║
