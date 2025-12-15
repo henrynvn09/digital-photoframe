@@ -1,6 +1,6 @@
 # Systemd Installation Guide for MagicMirror Client
 
-This guide explains how to migrate from cron-based scheduling to systemd services and timers for more reliable MagicMirror operation.
+This guide explains how to set up systemd services and timers for reliable MagicMirror operation with automatic scheduling and crash recovery.
 
 ## Table of Contents
 - [Why Systemd?](#why-systemd)
@@ -9,13 +9,13 @@ This guide explains how to migrate from cron-based scheduling to systemd service
 - [Testing](#testing)
 - [Monitoring](#monitoring)
 - [Troubleshooting](#troubleshooting)
-- [Rollback to Cron](#rollback-to-cron)
+- [Advanced Configuration](#advanced-configuration)
 
 ---
 
 ## Why Systemd?
 
-**Benefits over cron:**
+**Benefits:**
 - ✅ **Auto-restart on crash** - No more blackouts when MagicMirror crashes
 - ✅ **Proper environment** - Automatically inherits graphical session variables
 - ✅ **Better logging** - Use `journalctl` to view detailed logs
@@ -38,26 +38,7 @@ This guide explains how to migrate from cron-based scheduling to systemd service
 
 ## Installation Steps
 
-### Step 1: Stop Existing Cron Jobs (Temporarily)
-
-First, disable cron jobs to prevent conflicts:
-
-```bash
-# Edit crontab
-crontab -e
-
-# Comment out (add # at start of line) all MagicMirror related cron jobs:
-# 0 8 * * 6,0 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
-# 45 20 * * 6,0  /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log  2>&1
-# 0 16 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
-# 45 20 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log  2>&1
-
-# Save and exit
-```
-
-**DO NOT DELETE** the cron jobs yet - just comment them out for easy rollback.
-
-### Step 2: Install Systemd Service Files
+### Step 1: Install Systemd Service Files
 
 **RECOMMENDED:** Use the automated setup script:
 
@@ -92,7 +73,7 @@ cd ~/magicmirror-config/client/systemd
 sudo systemctl daemon-reload
 ```
 
-### Step 3: Enable Timers
+### Step 2: Enable Timers
 
 ```bash
 # Enable timers (they will start automatically on boot)
@@ -106,7 +87,7 @@ sudo systemctl start magicmirror-on@weekday.timer
 sudo systemctl start magicmirror-off.timer
 ```
 
-### Step 4: Verify Installation
+### Step 3: Verify Installation
 
 ```bash
 # Check that all timers are active
@@ -346,49 +327,6 @@ DISPLAY=:0 ~/magicmirror-config/client/mm.sh
 # - Server unreachable (check network)
 # - Config file issue on NAS
 # - Display server (X11) not running
-```
-
----
-
-## Rollback to Cron
-
-If systemd isn't working and you want to go back to cron:
-
-### Step 1: Stop and Disable Systemd Services
-
-```bash
-# Stop services
-sudo systemctl stop magicmirror-client.service
-sudo systemctl stop magicmirror-pir.service
-
-# Disable timers
-sudo systemctl disable magicmirror-on@weekend.timer
-sudo systemctl disable magicmirror-on@weekday.timer
-sudo systemctl disable magicmirror-off.timer
-
-# Stop timers
-sudo systemctl stop magicmirror-on@weekend.timer
-sudo systemctl stop magicmirror-on@weekday.timer
-sudo systemctl stop magicmirror-off.timer
-```
-
-### Step 2: Re-enable Cron Jobs
-
-```bash
-# Edit crontab
-crontab -e
-
-# Uncomment (remove # from start of line) the MagicMirror cron jobs
-# Save and exit
-```
-
-### Step 3: (Optional) Remove Systemd Files
-
-```bash
-# Only if you're sure you won't use systemd:
-sudo rm /etc/systemd/system/magicmirror-*.service
-sudo rm /etc/systemd/system/magicmirror-*.timer
-sudo systemctl daemon-reload
 ```
 
 ---

@@ -56,80 +56,10 @@ The setup script will:
 - ✅ Install required dependencies (python3, gpiozero, netcat)
 - ✅ Configure GPIO permissions for PIR sensor
 - ✅ Test connectivity to your MagicMirror server
-- ✅ Set up automatic scheduling (cron or systemd)
+- ✅ Set up automatic scheduling with systemd
 - ✅ Make all scripts executable
-- ✅ Run a test to verify everything works
 
 **Follow the on-screen prompts** - the script will ask for your permission before making changes.
-
-### Manual Setup (Alternative)
-
-If you prefer to set up manually:
-
-1. **Install dependencies:**
-   ```bash
-   sudo apt-get update
-   sudo apt-get install -y python3 python3-pip netcat-openbsd
-   pip3 install --user gpiozero
-   sudo usermod -a -G gpio pi
-   ```
-
-2. **Make scripts executable:**
-   ```bash
-   cd ~/magicmirror-config/client
-   chmod +x *.sh
-   chmod +x pir-control-display/*.sh
-   ```
-
-3. **Configure cron schedule:**
-   ```bash
-   crontab -e
-   ```
-   
-   Add these lines (the `setup_client.sh` script does this automatically with correct absolute paths):
-   ```bash
-   # MagicMirror Environment
-   SHELL=/bin/bash
-   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-   DISPLAY=:0
-   XAUTHORITY=$HOME/.Xauthority
-   XDG_RUNTIME_DIR=/run/user/1000
-
-   # Weekends: ON at 8:00 AM, OFF at 8:45 PM
-   # NOTE: Replace paths below with absolute paths from your installation
-   0 8 * * 6,0 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
-   45 20 * * 6,0 /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log 2>&1
-
-   # Weekdays: ON at 4:00 PM, OFF at 8:45 PM
-   0 16 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
-   45 20 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log 2>&1
-   ```
-   
-   > **Important:** Replace `/home/USERNAME/magicmirror-config` with your actual absolute path. The `setup_client.sh` script handles this automatically.
-   ```
-
-4. **Test the setup:**
-   ```bash
-   # Test server connectivity
-   ./check_server.sh
-   
-   # Start MagicMirror manually
-   ./turn_on_magic_mirror.sh
-   
-   # Stop MagicMirror
-   ./turn_off_magic_mirror.sh
-   ```
-
-### Systemd Setup (Optional but Recommended)
-
-For better reliability with auto-restart on crash:
-
-```bash
-cd ~/magicmirror-config/client/systemd
-cat INSTALL.md  # Read installation instructions
-```
-
-Or let the setup script install it for you when prompted.
 
 ---
 
@@ -186,9 +116,11 @@ docker restart magicmirror
 
 ## Usage
 
-### Manual Control
+### Manual Control (Debug/Testing Only)
 
-Run these commands from your shell (not cron - tilde expansion works here):
+The manual scripts are provided for debugging and testing purposes. For regular operation, use systemd scheduling (configured during setup).
+
+Run these commands from your shell:
 
 ```bash
 # Start MagicMirror and PIR sensor
@@ -207,22 +139,7 @@ Run these commands from your shell (not cron - tilde expansion works here):
 
 ### View Logs
 
-**Cron mode:**
-```bash
-# Startup logs
-tail -f ~/magicmirror_start.log
-
-# Shutdown logs
-tail -f ~/magicmirror_stop.log
-
-# MagicMirror runtime logs
-tail -f /tmp/magicmirror.log
-
-# PIR sensor logs
-tail -f /tmp/pir.log
-```
-
-**Systemd mode:**
+**Systemd (recommended):**
 ```bash
 # View MagicMirror logs
 journalctl -u magicmirror-client.service -n 50
@@ -237,14 +154,18 @@ journalctl -u magicmirror-pir.service -n 50
 systemctl list-timers magicmirror-*
 ```
 
-### Modify Schedule
-
-**Cron:**
+**Manual script logs** (debug mode only):
 ```bash
-crontab -e  # Edit and save
+# MagicMirror runtime logs
+tail -f /tmp/magicmirror.log
+
+# PIR sensor logs
+tail -f /tmp/pir.log
 ```
 
-**Systemd:**
+### Modify Schedule
+
+Edit the systemd timer files:
 ```bash
 # Edit timer file
 sudo nano /etc/systemd/system/magicmirror-on@weekend.timer
@@ -337,12 +258,11 @@ systemctl status magicmirror-pir.service
 ### View Detailed Error Logs
 
 ```bash
-# Cron mode
-tail -100 ~/magicmirror_start.log
-tail -100 /tmp/magicmirror.log
-
-# Systemd mode
+# Systemd
 journalctl -xeu magicmirror-client.service -n 100
+
+# Manual script logs (debug mode)
+tail -100 /tmp/magicmirror.log
 ```
 
 For more troubleshooting, see [AGENTS.md](AGENTS.md#troubleshooting).
@@ -395,7 +315,7 @@ Default schedule:
 - **Weekends**: ON at 8:00 AM, OFF at 8:45 PM
 - **Weekdays**: ON at 4:00 PM, OFF at 8:45 PM
 
-Modify in `crontab -e` or systemd timer files.
+Modify in systemd timer files (see [Usage](#modify-schedule) section).
 
 ### PIR Timeout
 

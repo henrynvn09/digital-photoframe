@@ -1,7 +1,19 @@
 #!/bin/bash
-# Robust MagicMirror startup with PIR control (client-only)
-# Fixed version: Uses npm scripts instead of direct Electron launch
-# This resolves the "clientonly is not running code null" error
+# MagicMirror Manual Startup Script
+#
+# NOTE: This script is for MANUAL/DEBUG USE ONLY
+# For automatic scheduling, use systemd timers (configured via setup_client.sh)
+#
+# This script:
+# - Starts MagicMirror client in client-only mode
+# - Starts PIR motion sensor for display control
+# - Monitors processes and auto-restarts PIR if it crashes
+#
+# Usage:
+#   ./turn_on_magic_mirror.sh          # Start MagicMirror manually
+#
+# To stop:
+#   ./turn_off_magic_mirror.sh         # Stop MagicMirror manually
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -141,9 +153,9 @@ if ! "${CONFIG_DIR}/check_server.sh" 5 3; then
 	exit 1
 fi
 
-# Turn off display initially (let PIR turn it on)
+# Turn on display when starting MagicMirror
 if command -v /usr/bin/vcgencmd >/dev/null 2>&1; then
-	/usr/bin/vcgencmd display_power 0 2>/dev/null || log "Warning: vcgencmd failed (display may not power off)."
+	/usr/bin/vcgencmd display_power 1 2>/dev/null || log "Warning: vcgencmd failed (display may not power on)."
 fi
 
 log "Starting MagicMirror (client-only) to ${ADDRESS}:${PORT}..."

@@ -21,7 +21,6 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Flags to track what was removed
 REMOVED_SYSTEMD=false
-REMOVED_CRON=false
 STOPPED_PROCESSES=false
 
 # ============================================================================
@@ -269,51 +268,6 @@ remove_systemd() {
 }
 
 # ============================================================================
-# Remove Cron Jobs
-# ============================================================================
-
-remove_cron() {
-    print_header "Removing Cron Jobs"
-    
-    # Check if any MagicMirror cron jobs exist
-    if ! crontab -l 2>/dev/null | grep -q "magicmirror\|magic_mirror\|MagicMirror"; then
-        print_info "No MagicMirror cron jobs found"
-        echo ""
-        return
-    fi
-    
-    print_warning "The following cron jobs will be removed:"
-    crontab -l 2>/dev/null | grep "magicmirror\|magic_mirror\|MagicMirror" || true
-    echo ""
-    
-    if ! ask_yes_no "Remove cron jobs?" "n"; then
-        print_info "Skipping cron removal"
-        echo ""
-        return
-    fi
-    
-    # Backup existing crontab
-    local backup_file="${HOME}/crontab_backup_uninstall_$(date +%Y%m%d_%H%M%S).txt"
-    if crontab -l > "$backup_file" 2>/dev/null; then
-        print_success "Backed up existing crontab to: $backup_file"
-    fi
-    
-    # Remove MagicMirror cron jobs
-    local temp_cron=$(mktemp)
-    crontab -l 2>/dev/null | grep -v "magicmirror\|magic_mirror\|MagicMirror" > "$temp_cron" || true
-    
-    # Also remove environment variables set by setup script
-    sed -i '/# MagicMirror Environment Variables/,/^$/d' "$temp_cron" 2>/dev/null || true
-    
-    crontab "$temp_cron"
-    rm -f "$temp_cron"
-    
-    print_success "Cron jobs removed"
-    REMOVED_CRON=true
-    echo ""
-}
-
-# ============================================================================
 # Clean Up Log Files
 # ============================================================================
 
@@ -384,10 +338,6 @@ print_summary() {
         print_info "✓ Systemd services removed"
     fi
     
-    if [[ "$REMOVED_CRON" == true ]]; then
-        print_info "✓ Cron jobs removed"
-    fi
-    
     echo ""
     print_info "What was NOT removed:"
     echo "  • MagicMirror repository (${HOME}/MagicMirror)"
@@ -425,7 +375,6 @@ main() {
 ║  This script will remove MagicMirror client configuration:  ║
 ║    • Stop running processes                                 ║
 ║    • Remove systemd services and timers                     ║
-║    • Remove cron jobs                                       ║
 ║    • Clean up log files                                     ║
 ║                                                              ║
 ║  Note: This will NOT remove installed packages or the       ║
@@ -446,7 +395,6 @@ EOF
     # Run uninstall steps
     stop_processes
     remove_systemd
-    remove_cron
     cleanup_logs
     print_summary
 }

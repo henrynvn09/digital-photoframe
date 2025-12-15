@@ -1,5 +1,18 @@
 #!/bin/bash
-# Robust MagicMirror shutdown script with process validation and force-kill
+# MagicMirror Manual Shutdown Script
+#
+# NOTE: This script is for MANUAL/DEBUG USE ONLY
+# For automatic scheduling, use systemd timers (configured via setup_client.sh)
+#
+# This script:
+# - Stops MagicMirror client processes
+# - Stops PIR motion sensor
+# - Powers off display
+# - Cleans up PID files and lock files
+#
+# Usage:
+#   ./turn_off_magic_mirror.sh         # Stop MagicMirror manually
+
 set -euo pipefail
 IFS=$'\n\t'
 

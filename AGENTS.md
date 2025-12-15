@@ -29,11 +29,11 @@ Create a family digital photo frame that displays:
 - Connects to NAS server at 192.168.4.45:8036
 - Runs in client-only mode (no local server)
 - **Uses X11 mode** (forced for optimal Pi 3B performance)
-- Scheduled startup/shutdown (cron or systemd timers):
+- Scheduled startup/shutdown using systemd timers:
   - **Weekends**: ON at 8:00 AM, OFF at 8:45 PM
   - **Weekdays**: ON at 4:00 PM, OFF at 8:45 PM
 - PIR motion sensor on GPIO pin 24 for smart display control
-- **Auto-restart on crash** (when using systemd services)
+- **Auto-restart on crash** (systemd service management)
 
 ### Display Power Management
 - PIR sensor detects motion and turns display on
@@ -119,7 +119,7 @@ npm install
 
 ### Client (Raspberry Pi)
 
-#### Using Cron (Default)
+#### Manual Control (Debug/Testing)
 ```bash
 # Start MagicMirror and PIR manually
 ./client/turn_on_magic_mirror.sh
@@ -128,8 +128,6 @@ npm install
 ./client/turn_off_magic_mirror.sh
 
 # View logs
-tail -f ~/magicmirror_start.log
-tail -f ~/magicmirror_stop.log
 tail -f /tmp/magicmirror.log
 tail -f /tmp/pir.log
 
@@ -141,7 +139,7 @@ tail -f /tmp/pir.log
 ./client/check_server.sh
 ```
 
-#### Using Systemd (Recommended - See client/systemd/INSTALL.md)
+#### Systemd Services (Automatic Scheduling)
 ```bash
 # Start/stop services manually
 sudo systemctl start magicmirror-client.service
@@ -217,18 +215,19 @@ sudo systemctl disable magicmirror-on@weekend.timer
 - IP whitelist must include Pi's IP for remote access
 - Server connectivity is checked before MagicMirror starts (5 attempts, 3-second delay)
 
-### Cron Schedule (Raspberry Pi)
+### Systemd Timer Schedule (Raspberry Pi)
+
+Schedule is configured via systemd timer files in `/etc/systemd/system/`:
+- **Weekends**: `magicmirror-on@weekend.timer` - ON at 8:00 AM
+- **Weekdays**: `magicmirror-on@weekday.timer` - ON at 4:00 PM  
+- **Every day**: `magicmirror-off.timer` - OFF at 8:45 PM
+
+To modify schedule times, edit the timer files and reload systemd:
 ```bash
-# Weekends: ON at 8:00 AM, OFF at 8:45 PM
-0 8 * * 6,0 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
-45 20 * * 6,0  /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log  2>&1
-
-# Weekdays: ON at 4:00 PM, OFF at 8:45 PM
-0 16 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
-45 20 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log  2>&1
+sudo nano /etc/systemd/system/magicmirror-on@weekend.timer
+sudo systemctl daemon-reload
+sudo systemctl restart magicmirror-on@weekend.timer
 ```
-
-**Note:** Replace `/home/USERNAME/magicmirror-config` with the absolute path to your installation. The `setup_client.sh` script automatically uses the correct absolute paths when creating cron jobs.
 
 ### PIR Sensor Configuration
 - GPIO Pin: 24
@@ -286,7 +285,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 - **Add calendar**: Add new object to calendars array
 - **Change weather location**: Update latitude/longitude
 - **Adjust display timeout**: Modify SHUTOFF_DELAY in pir.py
-- **Change schedule**: Update crontab on Raspberry Pi or systemd timers
+- **Change schedule**: Edit systemd timer files in /etc/systemd/system/
 
 ## Troubleshooting
 
@@ -320,20 +319,13 @@ When modifying headers or adding new modules, maintain consistency with Vietname
    nc -zv 192.168.4.45 8036
    ```
 
-2. **Display environment not set (cron)**
-   ```bash
-   # Add to crontab header:
-   DISPLAY=:0
-   XAUTHORITY=$HOME/.Xauthority
-   ```
-
-3. **Stale lock file**
+2. **Stale lock file**
    ```bash
    # Remove manually
    rmdir /tmp/mm_instance.lock
    ```
 
-4. **Process already running**
+3. **Process already running**
    ```bash
    # Kill existing processes
    pkill -9 -f electron
@@ -346,8 +338,11 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 
 **Solutions:**
 1. Check PIR service status:
-   - Cron: `ps aux | grep pir.py`
-   - Systemd: `systemctl status magicmirror-pir.service`
+   ```bash
+   systemctl status magicmirror-pir.service
+   # Or check process directly
+   ps aux | grep pir.py
+   ```
 
 2. Test PIR manually:
    ```bash
@@ -370,39 +365,19 @@ When modifying headers or adding new modules, maintain consistency with Vietname
    vcgencmd display_power 0  # Turn off
    ```
 
-### Cron vs Systemd
-
-**Use Cron if:**
-- ✅ Simple setup, no extra configuration needed
-- ✅ You understand cron syntax well
-- ✅ You manually restart when crashes occur
-- ❌ No auto-restart on crash
-- ❌ Limited logging capabilities
-
-**Use Systemd if:**
-- ✅ Want auto-restart on crash (no more blackouts!)
-- ✅ Need better logging (`journalctl`)
-- ✅ Want service dependencies (PIR only runs when MM runs)
-- ✅ Prefer status monitoring (`systemctl status`)
-- ❌ Slightly more complex initial setup
-
-**Recommendation:** Start with cron, migrate to systemd after verifying scripts work correctly.
-
 ### Viewing Logs
 
-**Cron logs:**
-```bash
-tail -f ~/magicmirror_start.log
-tail -f ~/magicmirror_stop.log
-tail -f /tmp/magicmirror.log
-tail -f /tmp/pir.log
-```
-
-**Systemd logs:**
+**Systemd (recommended):**
 ```bash
 journalctl -u magicmirror-client.service -n 50
 journalctl -fu magicmirror-client.service  # Follow mode
 journalctl -u magicmirror-pir.service -n 50
+```
+
+**Manual script logs** (if not using systemd scheduling):
+```bash
+tail -f /tmp/magicmirror.log
+tail -f /tmp/pir.log
 ```
 
 ### Performance Optimization (Raspberry Pi 3B)

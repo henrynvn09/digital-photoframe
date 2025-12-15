@@ -21,7 +21,6 @@ SERVER_PORT="8036"
 
 # Flags to track what was installed
 INSTALLED_DEPS=false
-CONFIGURED_CRON=false
 INSTALLED_SYSTEMD=false
 
 # ============================================================================
@@ -328,120 +327,32 @@ test_server() {
 # ============================================================================
 
 choose_scheduling_method() {
-    print_header "Choose Scheduling Method"
+    print_header "Configure Automatic Scheduling"
     
     cat << 'EOF'
-How do you want to schedule MagicMirror start/stop times?
+MagicMirror will be configured with systemd timers for automatic scheduling.
 
-  1) Cron (Traditional method)
-     • Simple and familiar to Linux users
-     • Works on all systems
-     • Manual restart needed if MagicMirror crashes
-     
-  2) Systemd (Recommended - Default)
-     • Auto-restart on crash (no more blackouts!)
-     • Better logging with journalctl
-     • Modern service management
-     • Service dependencies (PIR controlled properly)
-     
-  3) Skip scheduling
-     • Manual control only
-     • You'll start/stop MagicMirror manually
+Benefits:
+  • Auto-restart on crash (no more blackouts!)
+  • Better logging with journalctl
+  • Modern service management
+  • Service dependencies (PIR controlled properly)
 
 Schedule:
   • Weekends: ON at 8:00 AM, OFF at 8:45 PM
   • Weekdays: ON at 4:00 PM, OFF at 8:45 PM
 
 EOF
-
-    while true; do
-        read -rp "Choose scheduling method [1/2/3] (default: 2): " choice
-        choice="${choice:-2}"
-        
-        case "$choice" in
-            1)
-                SCHEDULING_METHOD="cron"
-                print_success "Selected: Cron scheduling"
-                break
-                ;;
-            2)
-                SCHEDULING_METHOD="systemd"
-                print_success "Selected: Systemd scheduling (recommended)"
-                break
-                ;;
-            3)
-                SCHEDULING_METHOD="none"
-                print_success "Selected: Manual control only"
-                break
-                ;;
-            *)
-                print_error "Invalid choice. Please enter 1, 2, or 3."
-                ;;
-        esac
-    done
     
-    echo ""
-}
-
-# ============================================================================
-# Configure Cron
-# ============================================================================
-
-configure_cron() {
-    print_header "Configuring Cron Schedule"
-    
-    print_info "Setting up automatic start/stop times:"
-    print_info "  Weekends: ON at 8:00 AM, OFF at 8:45 PM"
-    print_info "  Weekdays: ON at 4:00 PM, OFF at 8:45 PM"
-    echo ""
-    
-    # Backup existing crontab
-    local backup_file="${HOME}/crontab_backup_$(date +%Y%m%d_%H%M%S).txt"
-    if crontab -l > "$backup_file" 2>/dev/null; then
-        print_success "Backed up existing crontab to: $backup_file"
-    fi
-    
-    # Create new crontab content
-    local temp_cron=$(mktemp)
-    
-    # Add existing crontab (if any)
-    crontab -l 2>/dev/null | grep -v "magicmirror\|magic_mirror\|MagicMirror" > "$temp_cron" || true
-    
-    # Add environment variables
-    cat >> "$temp_cron" << EOF
-
-# MagicMirror Environment Variables
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-DISPLAY=:0
-XAUTHORITY=${HOME}/.Xauthority
-XDG_RUNTIME_DIR=/run/user/$(id -u)
-
-# MagicMirror Schedule - Weekends (Saturday, Sunday)
-0 8 * * 6,0 /bin/bash ${SCRIPT_DIR}/turn_on_magic_mirror.sh >> ${HOME}/magicmirror_start.log 2>&1
-45 20 * * 6,0 /bin/bash ${SCRIPT_DIR}/turn_off_magic_mirror.sh >> ${HOME}/magicmirror_stop.log 2>&1
-
-# MagicMirror Schedule - Weekdays (Monday-Friday)
-0 16 * * 1-5 /bin/bash ${SCRIPT_DIR}/turn_on_magic_mirror.sh >> ${HOME}/magicmirror_start.log 2>&1
-45 20 * * 1-5 /bin/bash ${SCRIPT_DIR}/turn_off_magic_mirror.sh >> ${HOME}/magicmirror_stop.log 2>&1
-
-EOF
-    
-    # Install new crontab
-    if crontab "$temp_cron"; then
-        print_success "Cron schedule configured"
-        CONFIGURED_CRON=true
-        
-        # Show installed cron jobs
-        print_info "Installed cron jobs:"
-        crontab -l | grep -A 1 "MagicMirror"
+    if ask_yes_no "Enable automatic scheduling with systemd timers?"; then
+        SCHEDULING_METHOD="systemd"
+        print_success "Systemd scheduling will be configured"
     else
-        print_error "Failed to install crontab"
-        rm -f "$temp_cron"
-        return 1
+        SCHEDULING_METHOD="none"
+        print_success "Skipping automatic scheduling (manual control only)"
+        print_info "You can run setup again later to enable scheduling"
     fi
     
-    rm -f "$temp_cron"
     echo ""
 }
 
@@ -514,52 +425,6 @@ configure_systemd() {
 # Test Installation
 # ============================================================================
 
-test_installation() {
-    print_header "Testing Installation"
-    
-    print_info "This will test the MagicMirror startup (won't add to cron/systemd)"
-    echo ""
-    
-    if ! ask_yes_no "Run test now?" "y"; then
-        print_info "Skipping test"
-        return
-    fi
-    
-    print_info "Starting MagicMirror client..."
-    print_info "This may take 10-15 seconds..."
-    echo ""
-    
-    # Start in background and monitor
-    "$SCRIPT_DIR/turn_on_magic_mirror.sh" &
-    local test_pid=$!
-    
-    # Wait a bit for startup
-    sleep 5
-    
-    # Check if process still running
-    if kill -0 $test_pid 2>/dev/null; then
-        print_success "MagicMirror appears to be running!"
-        print_info "Check your display - you should see the MagicMirror interface"
-        echo ""
-        
-        if ask_yes_no "Stop the test now?"; then
-            print_info "Stopping test..."
-            "$SCRIPT_DIR/turn_off_magic_mirror.sh"
-            wait $test_pid 2>/dev/null || true
-            print_success "Test stopped"
-        else
-            print_info "MagicMirror is still running (PID: $test_pid)"
-            print_info "To stop manually: $SCRIPT_DIR/turn_off_magic_mirror.sh"
-        fi
-    else
-        print_error "MagicMirror process stopped unexpectedly"
-        print_info "Check logs: tail -50 ~/magicmirror_start.log"
-        print_info "Also check: tail -50 /tmp/magicmirror.log"
-    fi
-    
-    echo ""
-}
-
 # ============================================================================
 # Print Summary
 # ============================================================================
@@ -574,12 +439,6 @@ print_summary() {
         print_info "✓ Dependencies installed"
     fi
     
-    if [[ "$CONFIGURED_CRON" == true ]]; then
-        print_info "✓ Cron schedule configured"
-        print_info "  - Weekends: ON at 8:00 AM, OFF at 8:45 PM"
-        print_info "  - Weekdays: ON at 4:00 PM, OFF at 8:45 PM"
-    fi
-    
     if [[ "$INSTALLED_SYSTEMD" == true ]]; then
         print_info "✓ Systemd services installed and enabled"
         print_info "  - Weekends: ON at 8:00 AM, OFF at 8:45 PM"
@@ -588,6 +447,8 @@ print_summary() {
     
     if [[ "$SCHEDULING_METHOD" == "none" ]]; then
         print_info "✓ Manual control only (no automatic scheduling)"
+        print_info "  - Start: ${SCRIPT_DIR}/turn_on_magic_mirror.sh"
+        print_info "  - Stop: ${SCRIPT_DIR}/turn_off_magic_mirror.sh"
     fi
     
     echo ""
@@ -604,14 +465,6 @@ print_summary() {
     echo "  Start:  $SCRIPT_DIR/turn_on_magic_mirror.sh"
     echo "  Stop:   $SCRIPT_DIR/turn_off_magic_mirror.sh"
     echo ""
-    
-    if [[ "$CONFIGURED_CRON" == true ]]; then
-        print_info "Cron Schedule:"
-        echo "  View:   crontab -l"
-        echo "  Edit:   crontab -e"
-        echo "  Logs:   tail -f ~/magicmirror_start.log"
-        echo ""
-    fi
     
     if [[ "$INSTALLED_SYSTEMD" == true ]]; then
         print_info "Systemd Commands:"
@@ -677,25 +530,16 @@ EOF
     # Ask user to choose scheduling method upfront
     choose_scheduling_method
     
-    # Configure chosen scheduling method
-    case "$SCHEDULING_METHOD" in
-        cron)
-            configure_cron
-            ;;
-        systemd)
-            configure_systemd
-            ;;
-        none)
-            print_info "Skipping automatic scheduling"
-            echo ""
-            ;;
-        *)
-            print_error "Invalid scheduling method: $SCHEDULING_METHOD"
-            exit 1
-            ;;
-    esac
+    # Configure scheduling if selected
+    if [[ "$SCHEDULING_METHOD" == "systemd" ]]; then
+        configure_systemd
+    else
+        print_info "Skipping automatic scheduling (manual control only)"
+        print_info "To start MagicMirror manually: ${SCRIPT_DIR}/turn_on_magic_mirror.sh"
+        print_info "To stop MagicMirror manually: ${SCRIPT_DIR}/turn_off_magic_mirror.sh"
+        echo ""
+    fi
     
-    test_installation
     print_summary
 }
 
