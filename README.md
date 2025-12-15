@@ -35,17 +35,19 @@ My MagicMirror configuration for a digital photo frame using a 27-inch monitor. 
 3. **MagicMirror server** running on your NAS (see Server Setup below)
 4. **This repository** cloned to your Pi:
    ```bash
-   cd ~/Code
-   git clone <your-repo-url> digital-photoframe
-   cd digital-photoframe
+   cd ~
+   git clone <your-repo-url> magicmirror-config
+   cd magicmirror-config
    ```
+   
+   > **Note:** You can clone to any directory. The scripts automatically detect their location.
 
 ### Automated Setup (Recommended)
 
 Run the automated setup script:
 
 ```bash
-cd ~/Code/digital-photoframe/client
+cd ~/magicmirror-config/client
 ./setup_client.sh
 ```
 
@@ -74,7 +76,7 @@ If you prefer to set up manually:
 
 2. **Make scripts executable:**
    ```bash
-   cd ~/Code/digital-photoframe/client
+   cd ~/magicmirror-config/client
    chmod +x *.sh
    chmod +x pir-control-display/*.sh
    ```
@@ -84,22 +86,26 @@ If you prefer to set up manually:
    crontab -e
    ```
    
-   Add these lines:
+   Add these lines (the `setup_client.sh` script does this automatically with correct absolute paths):
    ```bash
    # MagicMirror Environment
    SHELL=/bin/bash
    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
    DISPLAY=:0
-   XAUTHORITY=/home/pi/.Xauthority
+   XAUTHORITY=$HOME/.Xauthority
    XDG_RUNTIME_DIR=/run/user/1000
 
    # Weekends: ON at 8:00 AM, OFF at 8:45 PM
-   0 8 * * 6,0 /bin/bash /home/pi/Code/digital-photoframe/client/turn_on_magic_mirror.sh >> /home/pi/magicmirror_start.log 2>&1
-   45 20 * * 6,0 /bin/bash /home/pi/Code/digital-photoframe/client/turn_off_magic_mirror.sh >> /home/pi/magicmirror_stop.log 2>&1
+   # NOTE: Replace paths below with absolute paths from your installation
+   0 8 * * 6,0 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
+   45 20 * * 6,0 /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log 2>&1
 
    # Weekdays: ON at 4:00 PM, OFF at 8:45 PM
-   0 16 * * 1-5 /bin/bash /home/pi/Code/digital-photoframe/client/turn_on_magic_mirror.sh >> /home/pi/magicmirror_start.log 2>&1
-   45 20 * * 1-5 /bin/bash /home/pi/Code/digital-photoframe/client/turn_off_magic_mirror.sh >> /home/pi/magicmirror_stop.log 2>&1
+   0 16 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
+   45 20 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log 2>&1
+   ```
+   
+   > **Important:** Replace `/home/USERNAME/magicmirror-config` with your actual absolute path. The `setup_client.sh` script handles this automatically.
    ```
 
 4. **Test the setup:**
@@ -119,7 +125,7 @@ If you prefer to set up manually:
 For better reliability with auto-restart on crash:
 
 ```bash
-cd ~/Code/digital-photoframe/client/systemd
+cd ~/magicmirror-config/client/systemd
 cat INSTALL.md  # Read installation instructions
 ```
 
@@ -182,19 +188,21 @@ docker restart magicmirror
 
 ### Manual Control
 
+Run these commands from your shell (not cron - tilde expansion works here):
+
 ```bash
 # Start MagicMirror and PIR sensor
-~/Code/digital-photoframe/client/turn_on_magic_mirror.sh
+~/magicmirror-config/client/turn_on_magic_mirror.sh
 
 # Stop MagicMirror and PIR sensor
-~/Code/digital-photoframe/client/turn_off_magic_mirror.sh
+~/magicmirror-config/client/turn_off_magic_mirror.sh
 
 # Check server connectivity
-~/Code/digital-photoframe/client/check_server.sh
+~/magicmirror-config/client/check_server.sh
 
 # Manual display control
-~/Code/digital-photoframe/client/pir-control-display/turn_on_display.sh
-~/Code/digital-photoframe/client/pir-control-display/turn_off_display.sh
+~/magicmirror-config/client/pir-control-display/turn_on_display.sh
+~/magicmirror-config/client/pir-control-display/turn_off_display.sh
 ```
 
 ### View Logs
@@ -270,8 +278,8 @@ DEBUG = False            # Set to True for verbose logging
 ### Testing PIR Sensor
 
 ```bash
-# Run PIR script manually
-python3 ~/Code/digital-photoframe/client/pir-control-display/pir.py
+# Run PIR script manually (adjust path to your installation)
+python3 ~/magicmirror-config/client/pir-control-display/pir.py
 
 # Wave hand in front of sensor
 # Display should turn on, then off after 15 minutes of no motion
@@ -293,8 +301,8 @@ python3 ~/Code/digital-photoframe/client/pir-control-display/pir.py
 ### MagicMirror Won't Start
 
 ```bash
-# Test server connectivity
-~/Code/digital-photoframe/client/check_server.sh
+# Test server connectivity (adjust path to your installation)
+~/magicmirror-config/client/check_server.sh
 
 # Check if server is reachable
 nc -zv 192.168.4.45 8036
@@ -310,11 +318,11 @@ pkill -9 -f pir.py
 ### PIR Sensor Not Working
 
 ```bash
-# Check GPIO permissions
-groups pi  # Should include 'gpio'
+# Check GPIO permissions (replace 'pi' with your username)
+groups $(whoami)  # Should include 'gpio'
 
-# Add user to gpio group
-sudo usermod -a -G gpio pi
+# Add user to gpio group (replace 'pi' with your username if different)
+sudo usermod -a -G gpio $(whoami)
 # Then logout and login
 
 # Test vcgencmd

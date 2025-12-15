@@ -220,13 +220,15 @@ sudo systemctl disable magicmirror-on@weekend.timer
 ### Cron Schedule (Raspberry Pi)
 ```bash
 # Weekends: ON at 8:00 AM, OFF at 8:45 PM
-0 8 * * 6,0 /bin/bash /home/pi/Code/magicmirror-config/client/turn_on_magic_mirror.sh >> /home/pi/magicmirror_start.log 2>&1
-45 20 * * 6,0  /bin/bash /home/pi/Code/magicmirror-config/client/turn_off_magic_mirror.sh >> /home/pi/magicmirror_stop.log  2>&1
+0 8 * * 6,0 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
+45 20 * * 6,0  /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log  2>&1
 
 # Weekdays: ON at 4:00 PM, OFF at 8:45 PM
-0 16 * * 1-5 /bin/bash /home/pi/Code/magicmirror-config/client/turn_on_magic_mirror.sh >> /home/pi/magicmirror_start.log 2>&1
-45 20 * * 1-5 /bin/bash /home/pi/Code/magicmirror-config/client/turn_off_magic_mirror.sh >> /home/pi/magicmirror_stop.log  2>&1
+0 16 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_on_magic_mirror.sh >> $HOME/magicmirror_start.log 2>&1
+45 20 * * 1-5 /bin/bash /home/USERNAME/magicmirror-config/client/turn_off_magic_mirror.sh >> $HOME/magicmirror_stop.log  2>&1
 ```
+
+**Note:** Replace `/home/USERNAME/magicmirror-config` with the absolute path to your installation. The `setup_client.sh` script automatically uses the correct absolute paths when creating cron jobs.
 
 ### PIR Sensor Configuration
 - GPIO Pin: 24
@@ -322,7 +324,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
    ```bash
    # Add to crontab header:
    DISPLAY=:0
-   XAUTHORITY=/home/pi/.Xauthority
+   XAUTHORITY=$HOME/.Xauthority
    ```
 
 3. **Stale lock file**
@@ -349,13 +351,15 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 
 2. Test PIR manually:
    ```bash
-   python3 ~/Code/digital-photoframe/client/pir-control-display/pir.py
+   # Adjust path to your installation directory
+   python3 ~/magicmirror-config/client/pir-control-display/pir.py
    # Wave hand in front of sensor, check for log output
    ```
 
 3. Check GPIO permissions:
    ```bash
-   sudo usermod -a -G gpio pi
+   # Replace 'pi' with your actual username if different
+   sudo usermod -a -G gpio $(whoami)
    # Logout and login again
    ```
 

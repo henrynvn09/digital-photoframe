@@ -2,6 +2,8 @@
 Description=MagicMirror Client (Raspberry Pi)
 After=graphical.target network-online.target
 Wants=network-online.target
+StartLimitBurst=3
+StartLimitIntervalSec=600
 
 [Service]
 Type=simple
@@ -11,12 +13,10 @@ Environment="XAUTHORITY=/home/__USER__/.Xauthority"
 Environment="XDG_RUNTIME_DIR=/run/user/__UID__"
 WorkingDirectory=__INSTALL_DIR__
 ExecStartPre=/bin/bash __INSTALL_DIR__/check_server.sh 10 5
-ExecStartPre=/usr/bin/vcgencmd display_power 0
+ExecStartPre=/usr/bin/vcgencmd display_power 1
 ExecStart=/bin/bash __INSTALL_DIR__/mm.sh
 Restart=on-failure
 RestartSec=10s
-StartLimitBurst=3
-StartLimitIntervalSec=600
 
 # Logging
 StandardOutput=journal

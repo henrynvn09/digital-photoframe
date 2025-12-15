@@ -4,7 +4,8 @@ Requires=graphical.target
 
 [Service]
 Type=oneshot
-User=pi
+User=__USER__
+ExecStartPre=/usr/bin/vcgencmd display_power 1
 ExecStart=/bin/systemctl start magicmirror-client.service
 ExecStart=/bin/systemctl start magicmirror-pir.service
 RemainAfterExit=no

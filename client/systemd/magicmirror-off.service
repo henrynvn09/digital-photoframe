@@ -3,7 +3,7 @@ Description=Stop MagicMirror Client and PIR Control
 
 [Service]
 Type=oneshot
-User=pi
+User=__USER__
 ExecStart=/bin/systemctl stop magicmirror-pir.service
 ExecStart=/bin/systemctl stop magicmirror-client.service
 ExecStartPost=/usr/bin/vcgencmd display_power 0
