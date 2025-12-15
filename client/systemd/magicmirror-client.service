@@ -11,6 +11,7 @@ Environment="XAUTHORITY=/home/pi/.Xauthority"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
 WorkingDirectory=/home/pi/Code/digital-photoframe/client
 ExecStartPre=/bin/bash /home/pi/Code/digital-photoframe/client/check_server.sh 10 5
+ExecStartPre=/usr/bin/vcgencmd display_power 0
 ExecStart=/bin/bash /home/pi/Code/digital-photoframe/client/mm.sh
 Restart=on-failure
 RestartSec=10s
