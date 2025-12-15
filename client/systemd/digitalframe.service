@@ -1,5 +1,5 @@
 [Unit]
-Description=MagicMirror Scheduled Display with PIR Control
+Description=Digital Photo Frame Scheduled Display with PIR Control
 After=graphical.target network-online.target
 Wants=network-online.target
 
@@ -17,7 +17,7 @@ RestartSec=60s
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=magicmirror
+SyslogIdentifier=digitalframe
 
 [Install]
 WantedBy=graphical.target

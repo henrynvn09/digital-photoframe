@@ -194,15 +194,31 @@ stop_processes() {
 remove_systemd() {
     print_header "Removing Systemd Service"
     
-    # Check if systemd service is installed
-    if [[ ! -f "/etc/systemd/system/magicmirror.service" ]]; then
+    # Check for new service name (preferred) or old service name
+    local has_new_service=false
+    local has_old_service=false
+    
+    if [[ -f "/etc/systemd/system/digitalframe.service" ]]; then
+        has_new_service=true
+    fi
+    
+    if [[ -f "/etc/systemd/system/magicmirror.service" ]]; then
+        has_old_service=true
+    fi
+    
+    if [[ "$has_new_service" == false ]] && [[ "$has_old_service" == false ]]; then
         print_info "No systemd service found"
         echo ""
         return
     fi
     
-    print_warning "The following systemd service will be removed:"
-    echo "  - magicmirror.service"
+    print_warning "The following systemd service(s) will be removed:"
+    if [[ "$has_new_service" == true ]]; then
+        echo "  - digitalframe.service"
+    fi
+    if [[ "$has_old_service" == true ]]; then
+        echo "  - magicmirror.service (old)"
+    fi
     echo ""
     
     if ! ask_yes_no "Remove systemd service?" "n"; then
@@ -211,24 +227,37 @@ remove_systemd() {
         return
     fi
     
-    # Stop service if running
-    print_info "Stopping service..."
-    sudo systemctl stop magicmirror.service 2>/dev/null || true
+    # Remove new service if exists
+    if [[ "$has_new_service" == true ]]; then
+        print_info "Stopping digitalframe service..."
+        sudo systemctl stop digitalframe.service 2>/dev/null || true
+        
+        print_info "Disabling digitalframe service..."
+        sudo systemctl disable digitalframe.service 2>/dev/null || true
+        
+        print_info "Removing digitalframe service file..."
+        sudo rm -f "/etc/systemd/system/digitalframe.service"
+        print_success "Removed: digitalframe.service"
+    fi
     
-    # Disable service
-    print_info "Disabling service..."
-    sudo systemctl disable magicmirror.service 2>/dev/null || true
-    
-    # Remove service file
-    print_info "Removing service file..."
-    sudo rm -f "/etc/systemd/system/magicmirror.service"
-    print_success "Removed: magicmirror.service"
+    # Remove old service if exists (backward compatibility)
+    if [[ "$has_old_service" == true ]]; then
+        print_info "Stopping old magicmirror service..."
+        sudo systemctl stop magicmirror.service 2>/dev/null || true
+        
+        print_info "Disabling old magicmirror service..."
+        sudo systemctl disable magicmirror.service 2>/dev/null || true
+        
+        print_info "Removing old magicmirror service file..."
+        sudo rm -f "/etc/systemd/system/magicmirror.service"
+        print_success "Removed: magicmirror.service (old)"
+    fi
     
     # Reload systemd
     print_info "Reloading systemd daemon..."
     sudo systemctl daemon-reload
     
-    print_success "Systemd service removed"
+    print_success "Systemd service(s) removed"
     REMOVED_SYSTEMD=true
     echo ""
 }

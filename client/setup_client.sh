@@ -428,7 +428,7 @@ EOF
 # ============================================================================
 
 configure_systemd() {
-    print_header "Installing Systemd Service"
+    print_header "Installing Digital Photo Frame Service"
     
     if [[ ! -d "$SCRIPT_DIR/systemd" ]]; then
         print_error "Systemd directory not found: ${SCRIPT_DIR}/systemd"
@@ -440,17 +440,17 @@ configure_systemd() {
     user_uid=$(id -u)
     
     # Install unified service file
-    print_info "Installing magicmirror.service..."
+    print_info "Installing digitalframe.service..."
     
-    if [[ -f "$SCRIPT_DIR/systemd/magicmirror.service" ]]; then
+    if [[ -f "$SCRIPT_DIR/systemd/digitalframe.service" ]]; then
         # Replace placeholders with actual values
         sed -e "s|__USER__|${USER}|g" \
             -e "s|__UID__|${user_uid}|g" \
             -e "s|__INSTALL_DIR__|${SCRIPT_DIR}|g" \
-            "$SCRIPT_DIR/systemd/magicmirror.service" | sudo tee "/etc/systemd/system/magicmirror.service" > /dev/null
-        print_success "Installed: magicmirror.service"
+            "$SCRIPT_DIR/systemd/digitalframe.service" | sudo tee "/etc/systemd/system/digitalframe.service" > /dev/null
+        print_success "Installed: digitalframe.service"
     else
-        print_error "Service file not found: magicmirror.service"
+        print_error "Service file not found: digitalframe.service"
         return 1
     fi
     
@@ -460,10 +460,29 @@ configure_systemd() {
     
     # Enable service (will start on boot)
     print_info "Enabling systemd service..."
-    sudo systemctl enable magicmirror.service
+    sudo systemctl enable digitalframe.service
     
-    print_success "Systemd service enabled (will start on boot)"
-    print_info "To start now: sudo systemctl start magicmirror.service"
+    print_success "Digital Photo Frame service enabled (will start on boot)"
+    echo ""
+    
+    # Ask to start service now
+    if ask_yes_no "Start Digital Photo Frame service now?"; then
+        print_info "Starting digitalframe service..."
+        sudo systemctl start digitalframe.service
+        sleep 2
+        
+        # Check if service started successfully
+        if systemctl is-active --quiet digitalframe.service; then
+            print_success "Service started successfully!"
+            print_info "Check status: systemctl status digitalframe.service"
+            print_info "View logs: journalctl -fu digitalframe.service"
+        else
+            print_error "Service failed to start. Check logs: journalctl -xeu digitalframe.service"
+        fi
+    else
+        print_info "Service will start on next boot"
+        print_info "To start manually: sudo systemctl start digitalframe.service"
+    fi
     
     INSTALLED_SYSTEMD=true
     
@@ -518,14 +537,14 @@ print_summary() {
     
     if [[ "$INSTALLED_SYSTEMD" == true ]]; then
         print_info "Systemd Commands:"
-        echo "  Start:   sudo systemctl start magicmirror.service"
-        echo "  Stop:    sudo systemctl stop magicmirror.service"
-        echo "  Status:  systemctl status magicmirror.service"
-        echo "  Logs:    journalctl -fu magicmirror.service"
+        echo "  Start:   sudo systemctl start digitalframe.service"
+        echo "  Stop:    sudo systemctl stop digitalframe.service"
+        echo "  Status:  systemctl status digitalframe.service"
+        echo "  Logs:    journalctl -fu digitalframe.service"
         echo ""
         print_info "To modify schedule:"
         echo "  1. Edit: nano ${SCRIPT_DIR}/schedule.conf"
-        echo "  2. Restart: sudo systemctl restart magicmirror.service"
+        echo "  2. Restart: sudo systemctl restart digitalframe.service"
         echo ""
     fi
     
@@ -539,8 +558,8 @@ print_summary() {
     if [[ "$SCHEDULING_METHOD" == "none" ]]; then
         print_success "Setup complete! Use manual control commands to start MagicMirror."
     else
-        print_success "Setup complete! MagicMirror will start automatically on next boot."
-        print_info "To start immediately: sudo systemctl start magicmirror.service"
+        print_success "Setup complete! Digital Photo Frame will start automatically on next boot."
+        print_info "Service is currently: $(systemctl is-active digitalframe.service 2>/dev/null || echo 'not running')"
     fi
     echo ""
 }

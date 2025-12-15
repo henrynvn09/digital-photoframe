@@ -142,10 +142,10 @@ Run these commands from your shell:
 **Systemd:**
 ```bash
 # View MagicMirror logs
-journalctl -u magicmirror.service -n 50
+journalctl -u digitalframe.service -n 50
 
 # Follow logs in real-time
-journalctl -fu magicmirror.service
+journalctl -fu digitalframe.service
 ```
 
 **Manual script logs** (debug mode only):
@@ -165,7 +165,7 @@ Edit the schedule configuration file:
 nano ~/magicmirror-config/client/schedule.conf
 
 # Restart service to apply changes
-sudo systemctl restart magicmirror.service
+sudo systemctl restart digitalframe.service
 ```
 
 ---
@@ -245,14 +245,14 @@ vcgencmd display_power 1   # Turn on
 vcgencmd display_power 0   # Turn off
 
 # Check PIR service status (systemd)
-systemctl status magicmirror.service
+systemctl status digitalframe.service
 ```
 
 ### View Detailed Error Logs
 
 ```bash
 # Systemd
-journalctl -xeu magicmirror.service -n 100
+journalctl -xeu digitalframe.service -n 100
 
 # Manual script logs (debug mode)
 tail -100 /tmp/magicmirror.log
@@ -274,7 +274,7 @@ digital-photoframe/
 │       └── custom.css         # Custom styling
 ├── client/
 │   ├── systemd/
-│   │   └── magicmirror.service  # Unified systemd service
+│   │   └── digitalframe.service  # Unified systemd service
 │   ├── pir-control-display/
 │   │   ├── pir.py             # PIR motion sensor script
 │   │   └── turn_*_display.sh  # Manual display control
@@ -343,4 +343,4 @@ MIT License - See repository for details
 For issues or questions:
 1. Check [AGENTS.md](AGENTS.md) for detailed technical documentation
 2. Review [Troubleshooting](#troubleshooting) section above
-3. Check logs: `journalctl -fu magicmirror.service`
+3. Check logs: `journalctl -fu digitalframe.service`

@@ -82,7 +82,7 @@ digital-photoframe/
 │   │   ├── turn_on_display.sh # Manual display on script
 │   │   └── turn_off_display.sh# Manual display off script
 │   ├── systemd/
-│   │   └── magicmirror.service # Unified systemd service for scheduling
+│   │   └── digitalframe.service # Unified systemd service for scheduling
 │   ├── schedule.conf          # Schedule configuration (weekday/weekend times)
 │   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
 │   ├── check_server.sh        # Server connectivity checker
@@ -139,20 +139,20 @@ tail -f /tmp/pir.log
 #### Systemd Service (Automatic Scheduling)
 ```bash
 # View service status
-systemctl status magicmirror.service
+systemctl status digitalframe.service
 
 # View logs in real-time
-journalctl -fu magicmirror.service
+journalctl -fu digitalframe.service
 
 # View recent logs
-journalctl -u magicmirror.service -n 50
+journalctl -u digitalframe.service -n 50
 
 # Restart service (after config change)
-sudo systemctl restart magicmirror.service
+sudo systemctl restart digitalframe.service
 
 # Enable/disable auto-start on boot
-sudo systemctl enable magicmirror.service
-sudo systemctl disable magicmirror.service
+sudo systemctl enable digitalframe.service
+sudo systemctl disable digitalframe.service
 ```
 
 ### Testing Changes
@@ -229,7 +229,7 @@ OFF_MIN=45
 To modify schedule times:
 ```bash
 nano ~/magicmirror-config/client/schedule.conf
-sudo systemctl restart magicmirror.service
+sudo systemctl restart digitalframe.service
 ```
 
 ### PIR Sensor Configuration
@@ -299,7 +299,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 **Root Cause:** MagicMirror client crashes immediately on startup due to incorrect launch method
 
 **Solution:**
-1. Check logs: `tail -100 ~/magicmirror_start.log` or `journalctl -u magicmirror.service -n 100`
+1. Check logs: `tail -100 ~/magicmirror_start.log` or `journalctl -u digitalframe.service -n 100`
 2. Look for error: `"clientonly is not running code null"` - indicates Electron startup failure
 3. **Fixed in current version** by using npm scripts instead of direct Electron launch
 4. Ensure `check_server.sh` confirms server connectivity before starting
@@ -342,7 +342,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 **Solutions:**
 1. Check PIR service status:
    ```bash
-   systemctl status magicmirror.service
+   systemctl status digitalframe.service
    # Or check process directly
    ps aux | grep pir.py
    ```
@@ -372,8 +372,8 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 
 **Systemd:**
 ```bash
-journalctl -u magicmirror.service -n 50
-journalctl -fu magicmirror.service  # Follow mode
+journalctl -u digitalframe.service -n 50
+journalctl -fu digitalframe.service  # Follow mode
 ```
 
 **Manual script logs** (if not using systemd scheduling):
