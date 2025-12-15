@@ -1,0 +1,26 @@
+[Unit]
+Description=MagicMirror Client (Raspberry Pi)
+After=graphical.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/pi/.Xauthority"
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+WorkingDirectory=/home/pi/Code/digital-photoframe/client
+ExecStartPre=/bin/bash /home/pi/Code/digital-photoframe/client/check_server.sh 10 5
+ExecStart=/bin/bash /home/pi/Code/digital-photoframe/client/mm.sh
+Restart=on-failure
+RestartSec=10s
+StartLimitBurst=3
+StartLimitIntervalSec=600
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=magicmirror-client
+
+[Install]
+WantedBy=graphical.target

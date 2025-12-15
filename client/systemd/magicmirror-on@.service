@@ -1,0 +1,13 @@
+[Unit]
+Description=Start MagicMirror Client and PIR Control
+Requires=graphical.target
+
+[Service]
+Type=oneshot
+User=pi
+ExecStart=/bin/systemctl start magicmirror-client.service
+ExecStart=/bin/systemctl start magicmirror-pir.service
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

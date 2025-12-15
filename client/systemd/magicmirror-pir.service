@@ -1,0 +1,21 @@
+[Unit]
+Description=PIR Motion Sensor Display Control
+After=magicmirror-client.service
+BindsTo=magicmirror-client.service
+PartOf=magicmirror-client.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/Code/digital-photoframe/client/pir-control-display
+ExecStart=/usr/bin/python3 /home/pi/Code/digital-photoframe/client/pir-control-display/pir.py
+Restart=on-failure
+RestartSec=5s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=magicmirror-pir
+
+[Install]
+WantedBy=multi-user.target

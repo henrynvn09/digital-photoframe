@@ -1,0 +1,10 @@
+[Unit]
+Description=Start MagicMirror on Weekend Mornings (8:00 AM)
+
+[Timer]
+OnCalendar=Sat,Sun 08:00:00
+Persistent=true
+Unit=magicmirror-on@weekend.service
+
+[Install]
+WantedBy=timers.target
