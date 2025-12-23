@@ -124,10 +124,6 @@ npm install
 # Stop MagicMirror and PIR
 ./client/turn_off_magic_mirror.sh
 
-# View logs
-tail -f /tmp/magicmirror.log
-tail -f /tmp/pir.log
-
 # Manual display control
 ./client/pir-control-display/turn_on_display.sh
 ./client/pir-control-display/turn_off_display.sh
@@ -211,18 +207,15 @@ sudo systemctl disable digitalframe.service
 
 ### Schedule Configuration (Raspberry Pi)
 
-Schedule is configured in `client/schedule.conf`:
+Schedule is configured in `client/schedule.conf` using time range format:
 ```ini
-WEEKEND_ON_HOUR=8
-WEEKEND_ON_MIN=0
-WEEKDAY_ON_HOUR=16
-WEEKDAY_ON_MIN=0
-OFF_HOUR=20
-OFF_MIN=45
+# Format: DAYRANGE=HH:MM-HH:MM (ON_TIME-OFF_TIME)
+MONDAY_FRIDAY=16:00-20:45
+SATURDAY_SUNDAY=08:00-20:45
 ```
 
-- **Weekends** (Sat/Sun): Turns ON at configured weekend time, OFF at configured off time
-- **Weekdays** (Mon-Fri): Turns ON at configured weekday time, OFF at configured off time
+- **Monday-Friday**: Display ON at 16:00 (4 PM), OFF at 20:45 (8:45 PM)
+- **Saturday-Sunday**: Display ON at 08:00 (8 AM), OFF at 20:45 (8:45 PM)
 - Schedule is checked every 30 seconds by the systemd service
 - Changes take effect after restarting the service: `sudo systemctl restart digitalframe.service`
 
@@ -231,6 +224,16 @@ To modify schedule times:
 nano ~/digital-photoframe/client/schedule.conf
 sudo systemctl restart digitalframe.service
 ```
+
+**Format rules:**
+- Time format: HH:MM (24-hour, zero-padded recommended but not required)
+- Range separator: dash `-` (no spaces)
+- Valid times: 00:00 to 23:59
+- Midnight crossover NOT supported (times must be same-day only)
+- Examples:
+  - `MONDAY_FRIDAY=06:00-22:30` (6 AM to 10:30 PM on weekdays)
+  - `SATURDAY_SUNDAY=08:00-23:00` (8 AM to 11 PM on weekends)
+  - `MONDAY_FRIDAY=09:00-17:00` (Standard 9-to-5 work hours)
 
 ### PIR Sensor Configuration
 - GPIO Pin: 24
@@ -370,6 +373,14 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 
 ### Debugging with Debug Mode
 
+⚠️ **DEBUG MODE LOG VOLUME WARNING**:
+- Debug mode emits ~50 lines every 30 seconds
+- **Estimated volume**: 15-30 MB/day with DEBUG=true
+- With 64MB total log space and 3-day retention, debug logs will rotate very frequently
+- **IMPORTANT**: Only enable DEBUG=true temporarily (hours, not days)
+- Debug mode will fill the 64MB limit in ~20-30 minutes, causing constant rotation
+- Always disable after troubleshooting: Set `DEBUG=false` in `schedule.conf` and restart service
+
 **Enable detailed diagnostic logging when troubleshooting scheduler issues:**
 
 1. **Edit schedule configuration:**
@@ -420,17 +431,42 @@ sudo systemctl restart digitalframe.service
 
 ### Viewing Logs
 
-**Systemd:**
+All logs are managed by systemd journal. Use `journalctl` commands:
+
 ```bash
+# Real-time log monitoring
+journalctl -fu digitalframe.service
+
+# Last 50 lines
 journalctl -u digitalframe.service -n 50
-journalctl -fu digitalframe.service  # Follow mode
+
+# Logs from today
+journalctl -u digitalframe.service --since today
+
+# Logs with specific priority (errors only)
+journalctl -u digitalframe.service -p err
+
+# Check disk usage
+journalctl --disk-usage
+
+# Verify journal integrity
+journalctl --verify
 ```
 
-**Manual script logs** (if not using systemd scheduling):
+**Log Configuration**:
+- Location: `/etc/systemd/journald.conf.d/digitalframe.conf`
+- Max size: 64MB (SystemMaxUse)
+- Max retention: 3 days (MaxRetentionSec)
+- Individual file size: 2MB (SystemMaxFileSize)
+- Automatic rotation: Yes (managed by journald)
+
+**Manual cleanup** (if needed):
 ```bash
-tail -f /tmp/magicmirror.log
-tail -f /tmp/pir.log
+sudo journalctl --vacuum-time=3d
+sudo journalctl --vacuum-size=8M
 ```
+
+**Legacy `/tmp` logs removed**: Previous versions used `/tmp/magicmirror.log` and `/tmp/pir.log`. These have been removed in favor of journald-only logging for simplified management.
 
 ### Performance Optimization (Raspberry Pi 3B)
 

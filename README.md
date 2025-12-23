@@ -139,23 +139,30 @@ Run these commands from your shell:
 
 ### View Logs
 
-**Systemd:**
+All logs are managed by systemd journal:
+
 ```bash
-# View MagicMirror logs
+# View last 50 lines
 journalctl -u digitalframe.service -n 50
 
 # Follow logs in real-time
 journalctl -fu digitalframe.service
+
+# View logs from today only
+journalctl -u digitalframe.service --since today
+
+# View logs with timestamps
+journalctl -u digitalframe.service -o short-iso
+
+# Check disk usage
+journalctl --disk-usage
+
+# Manually clean old logs (if needed)
+sudo journalctl --vacuum-time=3d
+sudo journalctl --vacuum-size=8M
 ```
 
-**Manual script logs** (debug mode only):
-```bash
-# MagicMirror runtime logs
-tail -f /tmp/magicmirror.log
-
-# PIR sensor logs
-tail -f /tmp/pir.log
-```
+**Log retention**: Logs are automatically rotated and kept for 3 days with max 64MB disk usage (configured in `/etc/systemd/journald.conf.d/digitalframe.conf`).
 
 ### Modify Schedule
 
@@ -167,6 +174,29 @@ nano ~/digital-photoframe/client/schedule.conf
 # Restart service to apply changes
 sudo systemctl restart digitalframe.service
 ```
+
+### Log Management
+
+The system uses systemd journal for all logging with automatic rotation:
+
+**Configuration** (`/etc/systemd/journald.conf.d/digitalframe.conf`):
+- **SystemMaxUse**: 64MB - Maximum disk space for all journals
+- **SystemMaxFileSize**: 2MB - Individual journal file size limit
+- **RuntimeMaxUse**: 4MB - Maximum volatile memory usage
+- **MaxRetentionSec**: 3 days - Automatic deletion of logs older than 3 days
+
+**To check log sizes**:
+```bash
+journalctl --disk-usage
+```
+
+**To manually clean old logs**:
+```bash
+sudo journalctl --vacuum-time=3d  # Remove logs older than 3 days
+sudo journalctl --vacuum-size=8M  # Limit to 64MB total
+```
+
+**No action required**: Logs rotate automatically when limits are reached.
 
 ---
 
@@ -250,6 +280,8 @@ systemctl status digitalframe.service
 
 ### Debug Mode
 
+⚠️ **WARNING**: Debug mode generates significantly more log output (~15-30 MB/day). With 64MB log limit, debug logs will fill up quickly and rotate frequently. Only enable temporarily for troubleshooting (minutes to hours, not days), then disable immediately.
+
 If your digital photo frame isn't working as expected, enable debug logging:
 
 ```bash
@@ -280,11 +312,14 @@ Debug logs will show exactly what the scheduler is doing every 30 seconds, helpi
 ### View Detailed Error Logs
 
 ```bash
-# Systemd
+# View last 100 lines with error details
 journalctl -xeu digitalframe.service -n 100
 
-# Manual script logs (debug mode)
-tail -100 /tmp/magicmirror.log
+# View only error-priority messages
+journalctl -u digitalframe.service -p err
+
+# Export logs to file for analysis
+journalctl -u digitalframe.service --since "1 hour ago" > ~/digitalframe_debug.log
 ```
 
 For more troubleshooting, see [AGENTS.md](AGENTS.md#troubleshooting).
@@ -334,10 +369,20 @@ To change, edit these files:
 ### Schedule Times
 
 Default schedule:
-- **Weekends**: ON at 8:00 AM, OFF at 8:45 PM
-- **Weekdays**: ON at 4:00 PM, OFF at 8:45 PM
+- **Monday-Friday**: 16:00 to 20:45 (4:00 PM to 8:45 PM)
+- **Saturday-Sunday**: 08:00 to 20:45 (8:00 AM to 8:45 PM)
 
-Modify by editing `client/schedule.conf` and restarting the service (see [Usage](#modify-schedule) section).
+To change schedule times:
+```bash
+nano ~/digital-photoframe/client/schedule.conf
+
+# Edit the time ranges (HH:MM-HH:MM format):
+MONDAY_FRIDAY=16:00-20:45
+SATURDAY_SUNDAY=08:00-20:45
+
+# Restart service
+sudo systemctl restart digitalframe.service
+```
 
 ### PIR Timeout
 

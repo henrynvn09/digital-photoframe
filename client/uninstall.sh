@@ -288,12 +288,18 @@ cleanup_logs() {
     done
     
     if [[ "$found_any" == false ]]; then
-        print_info "No log files found"
+        print_info "No legacy log files found"
+        echo ""
+        
+        # Note about journald logs
+        print_info "System logs are managed by journald:"
+        echo "  View logs: journalctl -u digitalframe.service"
+        echo "  Clean logs: sudo journalctl --vacuum-size=8M"
         echo ""
         return
     fi
     
-    print_info "The following log files can be removed:"
+    print_info "The following legacy log files can be removed:"
     for log_file in "${log_files[@]}"; do
         if [[ -f "$log_file" ]]; then
             echo "  - $log_file"
@@ -301,7 +307,10 @@ cleanup_logs() {
     done
     echo ""
     
-    if ! ask_yes_no "Remove log files?" "n"; then
+    print_info "Note: Current versions use journald for logging (not /tmp files)"
+    echo ""
+    
+    if ! ask_yes_no "Remove legacy log files?" "n"; then
         print_info "Keeping log files"
         echo ""
         return
@@ -314,7 +323,13 @@ cleanup_logs() {
         fi
     done
     
-    print_success "Log files removed"
+    print_success "Legacy log files removed"
+    
+    # Show journald logs info
+    echo ""
+    print_info "To clean journald logs:"
+    echo "  sudo journalctl --vacuum-time=1d"
+    echo "  sudo journalctl --vacuum-size=8M"
     echo ""
 }
 

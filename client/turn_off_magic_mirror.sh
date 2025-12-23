@@ -166,8 +166,4 @@ if [[ -d "${LOCK_DIR}" ]]; then
 	fi
 fi
 
-# Clean up any leftover log files older than 7 days
-find /tmp -name "magicmirror.log*" -type f -mtime +7 -delete 2>/dev/null || true
-find /tmp -name "pir.log*" -type f -mtime +7 -delete 2>/dev/null || true
-
 log "Shutdown complete"

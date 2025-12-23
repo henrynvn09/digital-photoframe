@@ -172,7 +172,7 @@ cd "${MM_DIR}" || exit 1
 # This avoids the "clientonly is not running code null" error
 if [[ -f "${MM_DIR}/package.json" ]] && grep -q "start:x11" "${MM_DIR}/package.json" 2>/dev/null; then
 	log "Using npm run start:x11 (recommended method)"
-	npm run start:x11 >> /tmp/magicmirror.log 2>&1 &
+	npm run start:x11 &
 	NPM_PID=$!
 	
 	# Wait for electron child to spawn (with timeout)
@@ -191,7 +191,7 @@ if [[ -f "${MM_DIR}/package.json" ]] && grep -q "start:x11" "${MM_DIR}/package.j
 	if [[ -z "${ELECTRON_PID}" ]]; then
 		log "ERROR: Could not find electron child process after 5 seconds!"
 		log "npm PID ${NPM_PID} may have failed to spawn electron"
-		log "Check /tmp/magicmirror.log for errors"
+		log "Check output above for errors or run with journalctl if using systemd"
 		kill "${NPM_PID}" 2>/dev/null || true
 		exit 1
 	fi
@@ -206,7 +206,7 @@ EOF
 else
 	# Fallback: direct electron launch (for older MagicMirror versions)
 	log "Using direct electron launch (fallback method)"
-	./node_modules/.bin/electron js/electron.js >> /tmp/magicmirror.log 2>&1 &
+	./node_modules/.bin/electron js/electron.js &
 	ELECTRON_PID=$!
 	
 	# For direct launch, npm PID is same as electron PID (no parent)
@@ -223,13 +223,13 @@ sleep 3
 # Verify electron is still running
 if ! kill -0 "${ELECTRON_PID}" 2>/dev/null; then
 	log "ERROR: Electron process died immediately after start!"
-	log "Check /tmp/magicmirror.log for errors"
+	log "Check output above for errors or run with journalctl if using systemd"
 	exit 1
 fi
 
 # Start PIR controller
 if command -v python3 >/dev/null 2>&1; then
-	python3 "${CONFIG_DIR}/pir-control-display/pir.py" >> /tmp/pir.log 2>&1 &
+	python3 "${CONFIG_DIR}/pir-control-display/pir.py" &
 	PIR_PID=$!
 	
 	# Append PIR PID to same file
@@ -246,7 +246,7 @@ while true; do
 	# Check if electron is still running (main process)
 	if ! kill -0 "${ELECTRON_PID}" 2>/dev/null; then
 		log "ERROR: Electron process (PID ${ELECTRON_PID}) has exited unexpectedly!"
-		log "Check /tmp/magicmirror.log for errors"
+		log "Check output above for errors or run with journalctl if using systemd"
 		
 		# Clean up npm parent if still running
 		if [[ "${NPM_PID}" != "${ELECTRON_PID}" ]] && kill -0 "${NPM_PID}" 2>/dev/null; then
@@ -260,7 +260,7 @@ while true; do
 	# Check PIR if it was started
 	if [[ -n "${PIR_PID:-}" ]] && ! kill -0 "${PIR_PID}" 2>/dev/null; then
 		log "WARNING: PIR process (PID ${PIR_PID}) has exited, restarting..."
-		python3 "${CONFIG_DIR}/pir-control-display/pir.py" >> /tmp/pir.log 2>&1 &
+		python3 "${CONFIG_DIR}/pir-control-display/pir.py" &
 		PIR_PID=$!
 		
 		# Update PID file (remove old PIR line, add new one)
