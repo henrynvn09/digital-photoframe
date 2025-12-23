@@ -368,6 +368,56 @@ When modifying headers or adding new modules, maintain consistency with Vietname
    vcgencmd display_power 0  # Turn off
    ```
 
+### Debugging with Debug Mode
+
+**Enable detailed diagnostic logging when troubleshooting scheduler issues:**
+
+1. **Edit schedule configuration:**
+   ```bash
+   nano ~/magicmirror-config/client/schedule.conf
+   ```
+
+2. **Enable debug mode:**
+   ```ini
+   DEBUG=true
+   ```
+
+3. **Restart the service:**
+   ```bash
+   sudo systemctl restart digitalframe.service
+   ```
+
+4. **View debug logs in real-time:**
+   ```bash
+   journalctl -fu digitalframe.service
+   ```
+
+**What debug logs show:**
+- Loop iteration numbers and timestamps (every 30 seconds)
+- Schedule calculation details (time math, day type detection)
+- State transition decisions with reasons
+- Function entry/exit points (>>> and <<<)
+- All variable values at decision points
+- Command outputs (vcgencmd, process checks, server connectivity)
+- Error traps for failed commands
+
+**Example debug output:**
+```
+[2025-12-22 10:47:24] [DEBUG] Loop iteration #1 starting at 10:47:24
+[2025-12-22 10:47:24] [DEBUG] Current state: OFF
+[2025-12-22 10:47:24] [DEBUG] >>> should_be_running() called
+[2025-12-22 10:47:24] [DEBUG] Current time: hour=10, minute=47, day=2 (Tuesday)
+[2025-12-22 10:47:24] [DEBUG] Day type: WEEKDAY, on_min=960 (from 16:00)
+[2025-12-22 10:47:24] [DEBUG] Result: FALSE (should be OFF)
+[2025-12-22 10:47:24] [DEBUG] Reason: current_min=647 is outside window [960, 1245)
+```
+
+**IMPORTANT:** Disable debug mode after troubleshooting to reduce log verbosity:
+```bash
+# Set DEBUG=false in schedule.conf
+sudo systemctl restart digitalframe.service
+```
+
 ### Viewing Logs
 
 **Systemd:**

@@ -248,6 +248,35 @@ vcgencmd display_power 0   # Turn off
 systemctl status digitalframe.service
 ```
 
+### Debug Mode
+
+If your digital photo frame isn't working as expected, enable debug logging:
+
+```bash
+# 1. Edit schedule config
+nano ~/magicmirror-config/client/schedule.conf
+
+# 2. Change DEBUG=false to DEBUG=true
+# 3. Save and exit (Ctrl+X, Y, Enter)
+
+# 4. Restart service
+sudo systemctl restart digitalframe.service
+
+# 5. Watch detailed logs in real-time
+journalctl -fu digitalframe.service
+```
+
+Debug logs will show exactly what the scheduler is doing every 30 seconds, helping identify issues with:
+- Schedule logic and time calculations
+- Server connectivity
+- Display control (vcgencmd)
+- Process management
+
+**Remember to disable debug mode after troubleshooting** to keep logs clean:
+```bash
+# Set DEBUG=false in schedule.conf, then restart service
+```
+
 ### View Detailed Error Logs
 
 ```bash
