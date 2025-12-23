@@ -211,18 +211,15 @@ sudo systemctl disable digitalframe.service
 
 ### Schedule Configuration (Raspberry Pi)
 
-Schedule is configured in `client/schedule.conf`:
+Schedule is configured in `client/schedule.conf` using time range format:
 ```ini
-WEEKEND_ON_HOUR=8
-WEEKEND_ON_MIN=0
-WEEKDAY_ON_HOUR=16
-WEEKDAY_ON_MIN=0
-OFF_HOUR=20
-OFF_MIN=45
+# Format: DAYRANGE=HH:MM-HH:MM (ON_TIME-OFF_TIME)
+MONDAY_FRIDAY=16:00-20:45
+SATURDAY_SUNDAY=08:00-20:45
 ```
 
-- **Weekends** (Sat/Sun): Turns ON at configured weekend time, OFF at configured off time
-- **Weekdays** (Mon-Fri): Turns ON at configured weekday time, OFF at configured off time
+- **Monday-Friday**: Display ON at 16:00 (4 PM), OFF at 20:45 (8:45 PM)
+- **Saturday-Sunday**: Display ON at 08:00 (8 AM), OFF at 20:45 (8:45 PM)
 - Schedule is checked every 30 seconds by the systemd service
 - Changes take effect after restarting the service: `sudo systemctl restart digitalframe.service`
 
@@ -231,6 +228,16 @@ To modify schedule times:
 nano ~/digital-photoframe/client/schedule.conf
 sudo systemctl restart digitalframe.service
 ```
+
+**Format rules:**
+- Time format: HH:MM (24-hour, zero-padded recommended but not required)
+- Range separator: dash `-` (no spaces)
+- Valid times: 00:00 to 23:59
+- Midnight crossover NOT supported (times must be same-day only)
+- Examples:
+  - `MONDAY_FRIDAY=06:00-22:30` (6 AM to 10:30 PM on weekdays)
+  - `SATURDAY_SUNDAY=08:00-23:00` (8 AM to 11 PM on weekends)
+  - `MONDAY_FRIDAY=09:00-17:00` (Standard 9-to-5 work hours)
 
 ### PIR Sensor Configuration
 - GPIO Pin: 24

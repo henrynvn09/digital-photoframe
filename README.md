@@ -334,10 +334,20 @@ To change, edit these files:
 ### Schedule Times
 
 Default schedule:
-- **Weekends**: ON at 8:00 AM, OFF at 8:45 PM
-- **Weekdays**: ON at 4:00 PM, OFF at 8:45 PM
+- **Monday-Friday**: 16:00 to 20:45 (4:00 PM to 8:45 PM)
+- **Saturday-Sunday**: 08:00 to 20:45 (8:00 AM to 8:45 PM)
 
-Modify by editing `client/schedule.conf` and restarting the service (see [Usage](#modify-schedule) section).
+To change schedule times:
+```bash
+nano ~/digital-photoframe/client/schedule.conf
+
+# Edit the time ranges (HH:MM-HH:MM format):
+MONDAY_FRIDAY=16:00-20:45
+SATURDAY_SUNDAY=08:00-20:45
+
+# Restart service
+sudo systemctl restart digitalframe.service
+```
 
 ### PIR Timeout
 

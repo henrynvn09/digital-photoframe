@@ -18,12 +18,8 @@ SERVER_PORT="8036"
 SCHEDULE_CONF="${SCRIPT_DIR}/schedule.conf"
 
 # Default schedule (if config file missing or invalid)
-DEFAULT_WEEKEND_ON_HOUR=8
-DEFAULT_WEEKEND_ON_MIN=0
-DEFAULT_WEEKDAY_ON_HOUR=16
-DEFAULT_WEEKDAY_ON_MIN=0
-DEFAULT_OFF_HOUR=20
-DEFAULT_OFF_MIN=45
+DEFAULT_MONDAY_FRIDAY="16:00-20:45"
+DEFAULT_SATURDAY_SUNDAY="08:00-20:45"
 
 # State tracking
 MM_PID=""
@@ -48,71 +44,130 @@ error_log() {
 	echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $*"
 }
 
+# Parse time range format HH:MM-HH:MM into hour/minute components
+# Usage: parse_time_range "16:00-20:45"
+# Returns: Sets PARSED_ON_HOUR, PARSED_ON_MIN, PARSED_OFF_HOUR, PARSED_OFF_MIN
+# Returns: 0 on success, 1 on failure
+parse_time_range() {
+	local range="$1"
+	local on_time off_time
+	
+	debug_log ">>> parse_time_range('$range') called"
+	
+	# Validate format: must contain a dash and match HH:MM-HH:MM pattern
+	if [[ ! "$range" =~ ^[0-9]{1,2}:[0-9]{2}-[0-9]{1,2}:[0-9]{2}$ ]]; then
+		error_log "Invalid time range format: '$range' (expected HH:MM-HH:MM)"
+		debug_log "<<< parse_time_range() returning 1 (invalid format)"
+		return 1
+	fi
+	
+	# Split by dash: 16:00-20:45 -> "16:00" and "20:45"
+	on_time="${range%%-*}"
+	off_time="${range##*-}"
+	
+	debug_log "Split into: on_time='$on_time', off_time='$off_time'"
+	
+	# Parse ON time (HH:MM)
+	PARSED_ON_HOUR="${on_time%%:*}"
+	PARSED_ON_MIN="${on_time##*:}"
+	
+	# Parse OFF time (HH:MM)
+	PARSED_OFF_HOUR="${off_time%%:*}"
+	PARSED_OFF_MIN="${off_time##*:}"
+	
+	debug_log "Parsed: ON=${PARSED_ON_HOUR}:${PARSED_ON_MIN}, OFF=${PARSED_OFF_HOUR}:${PARSED_OFF_MIN}"
+	
+	# Remove leading zeros to avoid octal interpretation
+	PARSED_ON_HOUR=$((10#$PARSED_ON_HOUR))
+	PARSED_ON_MIN=$((10#$PARSED_ON_MIN))
+	PARSED_OFF_HOUR=$((10#$PARSED_OFF_HOUR))
+	PARSED_OFF_MIN=$((10#$PARSED_OFF_MIN))
+	
+	debug_log "After octal fix: ON=${PARSED_ON_HOUR}:${PARSED_ON_MIN}, OFF=${PARSED_OFF_HOUR}:${PARSED_OFF_MIN}"
+	
+	# Validate ranges
+	if [[ $PARSED_ON_HOUR -lt 0 || $PARSED_ON_HOUR -gt 23 ]]; then
+		error_log "Invalid ON hour: $PARSED_ON_HOUR (must be 0-23)"
+		debug_log "<<< parse_time_range() returning 1 (invalid hour)"
+		return 1
+	fi
+	if [[ $PARSED_ON_MIN -lt 0 || $PARSED_ON_MIN -gt 59 ]]; then
+		error_log "Invalid ON minute: $PARSED_ON_MIN (must be 0-59)"
+		debug_log "<<< parse_time_range() returning 1 (invalid minute)"
+		return 1
+	fi
+	if [[ $PARSED_OFF_HOUR -lt 0 || $PARSED_OFF_HOUR -gt 23 ]]; then
+		error_log "Invalid OFF hour: $PARSED_OFF_HOUR (must be 0-23)"
+		debug_log "<<< parse_time_range() returning 1 (invalid hour)"
+		return 1
+	fi
+	if [[ $PARSED_OFF_MIN -lt 0 || $PARSED_OFF_MIN -gt 59 ]]; then
+		error_log "Invalid OFF minute: $PARSED_OFF_MIN (must be 0-59)"
+		debug_log "<<< parse_time_range() returning 1 (invalid minute)"
+		return 1
+	fi
+	
+	debug_log "<<< parse_time_range() returning 0 (success)"
+	return 0
+}
+
 # Load schedule from config file
 load_schedule() {
 	debug_log "=== load_schedule() called ==="
 	debug_log "Config file path: $SCHEDULE_CONF"
 	
 	# Set defaults first
-	WEEKEND_ON_HOUR=$DEFAULT_WEEKEND_ON_HOUR
-	WEEKEND_ON_MIN=$DEFAULT_WEEKEND_ON_MIN
-	WEEKDAY_ON_HOUR=$DEFAULT_WEEKDAY_ON_HOUR
-	WEEKDAY_ON_MIN=$DEFAULT_WEEKDAY_ON_MIN
-	OFF_HOUR=$DEFAULT_OFF_HOUR
-	OFF_MIN=$DEFAULT_OFF_MIN
+	MONDAY_FRIDAY="$DEFAULT_MONDAY_FRIDAY"
+	SATURDAY_SUNDAY="$DEFAULT_SATURDAY_SUNDAY"
 	
 	# Try to load from file
 	if [[ -f "$SCHEDULE_CONF" ]]; then
 		debug_log "Config file found, attempting to load..."
-		# Source the file in a subshell to avoid polluting our environment
 		# shellcheck disable=SC1090
 		source "$SCHEDULE_CONF" || {
 			error_log "Failed to parse $SCHEDULE_CONF, using defaults"
-			return
 		}
 		debug_log "Config file loaded successfully"
-		
-		# Validate values (hours: 0-23, minutes: 0-59)
-		if [[ $WEEKEND_ON_HOUR -lt 0 || $WEEKEND_ON_HOUR -gt 23 ]]; then
-			error_log "Invalid WEEKEND_ON_HOUR=$WEEKEND_ON_HOUR, using default"
-			WEEKEND_ON_HOUR=$DEFAULT_WEEKEND_ON_HOUR
-		fi
-		debug_log "Validated WEEKEND_ON_HOUR=$WEEKEND_ON_HOUR"
-		
-		if [[ $WEEKEND_ON_MIN -lt 0 || $WEEKEND_ON_MIN -gt 59 ]]; then
-			error_log "Invalid WEEKEND_ON_MIN=$WEEKEND_ON_MIN, using default"
-			WEEKEND_ON_MIN=$DEFAULT_WEEKEND_ON_MIN
-		fi
-		debug_log "Validated WEEKEND_ON_MIN=$WEEKEND_ON_MIN"
-		
-		if [[ $WEEKDAY_ON_HOUR -lt 0 || $WEEKDAY_ON_HOUR -gt 23 ]]; then
-			error_log "Invalid WEEKDAY_ON_HOUR=$WEEKDAY_ON_HOUR, using default"
-			WEEKDAY_ON_HOUR=$DEFAULT_WEEKDAY_ON_HOUR
-		fi
-		debug_log "Validated WEEKDAY_ON_HOUR=$WEEKDAY_ON_HOUR"
-		
-		if [[ $WEEKDAY_ON_MIN -lt 0 || $WEEKDAY_ON_MIN -gt 59 ]]; then
-			error_log "Invalid WEEKDAY_ON_MIN=$WEEKDAY_ON_MIN, using default"
-			WEEKDAY_ON_MIN=$DEFAULT_WEEKDAY_ON_MIN
-		fi
-		debug_log "Validated WEEKDAY_ON_MIN=$WEEKDAY_ON_MIN"
-		
-		if [[ $OFF_HOUR -lt 0 || $OFF_HOUR -gt 23 ]]; then
-			error_log "Invalid OFF_HOUR=$OFF_HOUR, using default"
-			OFF_HOUR=$DEFAULT_OFF_HOUR
-		fi
-		debug_log "Validated OFF_HOUR=$OFF_HOUR"
-		
-		if [[ $OFF_MIN -lt 0 || $OFF_MIN -gt 59 ]]; then
-			error_log "Invalid OFF_MIN=$OFF_MIN, using default"
-			OFF_MIN=$DEFAULT_OFF_MIN
-		fi
-		debug_log "Validated OFF_MIN=$OFF_MIN"
+		debug_log "Loaded values: MONDAY_FRIDAY='$MONDAY_FRIDAY', SATURDAY_SUNDAY='$SATURDAY_SUNDAY'"
 	else
 		error_log "Schedule file not found: $SCHEDULE_CONF, using defaults"
 	fi
 	
-	log "Schedule loaded: Weekend ON=${WEEKEND_ON_HOUR}:$(printf '%02d' $WEEKEND_ON_MIN), Weekday ON=${WEEKDAY_ON_HOUR}:$(printf '%02d' $WEEKDAY_ON_MIN), OFF=${OFF_HOUR}:$(printf '%02d' $OFF_MIN)"
+	# Parse Monday-Friday schedule
+	debug_log "Parsing MONDAY_FRIDAY=$MONDAY_FRIDAY"
+	if parse_time_range "$MONDAY_FRIDAY"; then
+		WEEKDAY_ON_HOUR=$PARSED_ON_HOUR
+		WEEKDAY_ON_MIN=$PARSED_ON_MIN
+		WEEKDAY_OFF_HOUR=$PARSED_OFF_HOUR
+		WEEKDAY_OFF_MIN=$PARSED_OFF_MIN
+		debug_log "Successfully parsed MONDAY_FRIDAY -> ON=${WEEKDAY_ON_HOUR}:$(printf '%02d' $WEEKDAY_ON_MIN), OFF=${WEEKDAY_OFF_HOUR}:$(printf '%02d' $WEEKDAY_OFF_MIN)"
+	else
+		error_log "Invalid MONDAY_FRIDAY='$MONDAY_FRIDAY', using defaults"
+		parse_time_range "$DEFAULT_MONDAY_FRIDAY"
+		WEEKDAY_ON_HOUR=$PARSED_ON_HOUR
+		WEEKDAY_ON_MIN=$PARSED_ON_MIN
+		WEEKDAY_OFF_HOUR=$PARSED_OFF_HOUR
+		WEEKDAY_OFF_MIN=$PARSED_OFF_MIN
+	fi
+	
+	# Parse Saturday-Sunday schedule
+	debug_log "Parsing SATURDAY_SUNDAY=$SATURDAY_SUNDAY"
+	if parse_time_range "$SATURDAY_SUNDAY"; then
+		WEEKEND_ON_HOUR=$PARSED_ON_HOUR
+		WEEKEND_ON_MIN=$PARSED_ON_MIN
+		WEEKEND_OFF_HOUR=$PARSED_OFF_HOUR
+		WEEKEND_OFF_MIN=$PARSED_OFF_MIN
+		debug_log "Successfully parsed SATURDAY_SUNDAY -> ON=${WEEKEND_ON_HOUR}:$(printf '%02d' $WEEKEND_ON_MIN), OFF=${WEEKEND_OFF_HOUR}:$(printf '%02d' $WEEKEND_OFF_MIN)"
+	else
+		error_log "Invalid SATURDAY_SUNDAY='$SATURDAY_SUNDAY', using defaults"
+		parse_time_range "$DEFAULT_SATURDAY_SUNDAY"
+		WEEKEND_ON_HOUR=$PARSED_ON_HOUR
+		WEEKEND_ON_MIN=$PARSED_ON_MIN
+		WEEKEND_OFF_HOUR=$PARSED_OFF_HOUR
+		WEEKEND_OFF_MIN=$PARSED_OFF_MIN
+	fi
+	
+	log "Schedule loaded: Monday-Friday ${WEEKDAY_ON_HOUR}:$(printf '%02d' $WEEKDAY_ON_MIN)-${WEEKDAY_OFF_HOUR}:$(printf '%02d' $WEEKDAY_OFF_MIN), Saturday-Sunday ${WEEKEND_ON_HOUR}:$(printf '%02d' $WEEKEND_ON_MIN)-${WEEKEND_OFF_HOUR}:$(printf '%02d' $WEEKEND_OFF_MIN)"
 	debug_log "DEBUG mode: $DEBUG"
 	debug_log "=== load_schedule() completed ==="
 }
@@ -133,25 +188,27 @@ should_be_running() {
 	
 	# Convert to minutes since midnight (force base-10 to avoid octal issues)
 	current_min=$((10#$hour * 60 + 10#$minute))
-	off_min=$((OFF_HOUR * 60 + OFF_MIN))
 	
-	debug_log "Minutes since midnight: current=$current_min, off=$off_min"
-	
-	# Determine ON time based on day
+	# Determine ON/OFF times based on day
 	if [[ $day -ge 6 ]]; then
 		# Weekend (Sat=6, Sun=7)
 		on_min=$((WEEKEND_ON_HOUR * 60 + WEEKEND_ON_MIN))
-		debug_log "Day type: WEEKEND, on_min=$on_min (from ${WEEKEND_ON_HOUR}:$(printf '%02d' $WEEKEND_ON_MIN))"
+		off_min=$((WEEKEND_OFF_HOUR * 60 + WEEKEND_OFF_MIN))
+		debug_log "Day type: SATURDAY_SUNDAY, on=$on_min (${WEEKEND_ON_HOUR}:$(printf '%02d' $WEEKEND_ON_MIN)), off=$off_min (${WEEKEND_OFF_HOUR}:$(printf '%02d' $WEEKEND_OFF_MIN))"
 	else
 		# Weekday (Mon=1 through Fri=5)
 		on_min=$((WEEKDAY_ON_HOUR * 60 + WEEKDAY_ON_MIN))
-		debug_log "Day type: WEEKDAY, on_min=$on_min (from ${WEEKDAY_ON_HOUR}:$(printf '%02d' $WEEKDAY_ON_MIN))"
+		off_min=$((WEEKDAY_OFF_HOUR * 60 + WEEKDAY_OFF_MIN))
+		debug_log "Day type: MONDAY_FRIDAY, on=$on_min (${WEEKDAY_ON_HOUR}:$(printf '%02d' $WEEKDAY_ON_MIN)), off=$off_min (${WEEKDAY_OFF_HOUR}:$(printf '%02d' $WEEKDAY_OFF_MIN))"
 	fi
+	
+	debug_log "Minutes since midnight: current=$current_min"
 	
 	# Check if current time is within ON window
 	debug_log "Checking: $current_min >= $on_min && $current_min < $off_min"
 	if [[ $current_min -ge $on_min && $current_min -lt $off_min ]]; then
 		debug_log "Result: TRUE (should be ON)"
+		debug_log "Reason: current_min=$current_min is within window [$on_min, $off_min)"
 		debug_log "<<< should_be_running() returning 0"
 		return 0  # Should be ON
 	else
