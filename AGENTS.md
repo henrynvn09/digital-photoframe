@@ -224,11 +224,11 @@ OFF_MIN=45
 - **Weekends** (Sat/Sun): Turns ON at configured weekend time, OFF at configured off time
 - **Weekdays** (Mon-Fri): Turns ON at configured weekday time, OFF at configured off time
 - Schedule is checked every 30 seconds by the systemd service
-- Changes take effect after restarting the service: `sudo systemctl restart magicmirror.service`
+- Changes take effect after restarting the service: `sudo systemctl restart digitalframe.service`
 
 To modify schedule times:
 ```bash
-nano ~/magicmirror-config/client/schedule.conf
+nano ~/digital-photoframe/client/schedule.conf
 sudo systemctl restart digitalframe.service
 ```
 
@@ -299,7 +299,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 **Root Cause:** MagicMirror client crashes immediately on startup due to incorrect launch method
 
 **Solution:**
-1. Check logs: `tail -100 ~/magicmirror_start.log` or `journalctl -u digitalframe.service -n 100`
+1. Check logs: `journalctl -u digitalframe.service -n 100`
 2. Look for error: `"clientonly is not running code null"` - indicates Electron startup failure
 3. **Fixed in current version** by using npm scripts instead of direct Electron launch
 4. Ensure `check_server.sh` confirms server connectivity before starting
@@ -350,7 +350,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 2. Test PIR manually:
    ```bash
    # Adjust path to your installation directory
-   python3 ~/magicmirror-config/client/pir-control-display/pir.py
+   python3 ~/digital-photoframe/client/pir-control-display/pir.py
    # Wave hand in front of sensor, check for log output
    ```
 
@@ -374,7 +374,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 
 1. **Edit schedule configuration:**
    ```bash
-   nano ~/magicmirror-config/client/schedule.conf
+   nano ~/digital-photoframe/client/schedule.conf
    ```
 
 2. **Enable debug mode:**

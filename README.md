@@ -36,8 +36,8 @@ My MagicMirror configuration for a digital photo frame using a 27-inch monitor. 
 4. **This repository** cloned to your Pi:
    ```bash
    cd ~
-   git clone <your-repo-url> magicmirror-config
-   cd magicmirror-config
+   git clone <your-repo-url> digital-photoframe
+   cd digital-photoframe
    ```
    
    > **Note:** You can clone to any directory. The scripts automatically detect their location.
@@ -47,7 +47,7 @@ My MagicMirror configuration for a digital photo frame using a 27-inch monitor. 
 Run the automated setup script:
 
 ```bash
-cd ~/magicmirror-config/client
+cd ~/digital-photoframe/client
 ./setup_client.sh
 ```
 
@@ -124,17 +124,17 @@ Run these commands from your shell:
 
 ```bash
 # Start MagicMirror and PIR sensor
-~/magicmirror-config/client/turn_on_magic_mirror.sh
+~/digital-photoframe/client/turn_on_magic_mirror.sh
 
 # Stop MagicMirror and PIR sensor
-~/magicmirror-config/client/turn_off_magic_mirror.sh
+~/digital-photoframe/client/turn_off_magic_mirror.sh
 
 # Check server connectivity
-~/magicmirror-config/client/check_server.sh
+~/digital-photoframe/client/check_server.sh
 
 # Manual display control
-~/magicmirror-config/client/pir-control-display/turn_on_display.sh
-~/magicmirror-config/client/pir-control-display/turn_off_display.sh
+~/digital-photoframe/client/pir-control-display/turn_on_display.sh
+~/digital-photoframe/client/pir-control-display/turn_off_display.sh
 ```
 
 ### View Logs
@@ -162,7 +162,7 @@ tail -f /tmp/pir.log
 Edit the schedule configuration file:
 ```bash
 # Edit schedule times
-nano ~/magicmirror-config/client/schedule.conf
+nano ~/digital-photoframe/client/schedule.conf
 
 # Restart service to apply changes
 sudo systemctl restart digitalframe.service
@@ -193,7 +193,7 @@ DEBUG = False            # Set to True for verbose logging
 
 ```bash
 # Run PIR script manually (adjust path to your installation)
-python3 ~/magicmirror-config/client/pir-control-display/pir.py
+python3 ~/digital-photoframe/client/pir-control-display/pir.py
 
 # Wave hand in front of sensor
 # Display should turn on, then off after 15 minutes of no motion
@@ -208,7 +208,7 @@ python3 ~/magicmirror-config/client/pir-control-display/pir.py
 **Symptom:** Display shows black screen with cursor but no MagicMirror
 
 **Solution:**
-1. Check logs: `tail -100 ~/magicmirror_start.log`
+1. Check logs: `journalctl -u digitalframe.service -n 100`
 2. Look for error: "clientonly is not running code null"
 3. This has been fixed in the latest version - make sure you've run `git pull`
 
@@ -216,7 +216,7 @@ python3 ~/magicmirror-config/client/pir-control-display/pir.py
 
 ```bash
 # Test server connectivity (adjust path to your installation)
-~/magicmirror-config/client/check_server.sh
+~/digital-photoframe/client/check_server.sh
 
 # Check if server is reachable
 nc -zv 192.168.4.45 8036
@@ -254,7 +254,7 @@ If your digital photo frame isn't working as expected, enable debug logging:
 
 ```bash
 # 1. Edit schedule config
-nano ~/magicmirror-config/client/schedule.conf
+nano ~/digital-photoframe/client/schedule.conf
 
 # 2. Change DEBUG=false to DEBUG=true
 # 3. Save and exit (Ctrl+X, Y, Enter)
