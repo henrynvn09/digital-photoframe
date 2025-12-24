@@ -13,13 +13,13 @@ trap 'error_log "Command failed at line $LINENO: $BASH_COMMAND"' ERR
 # Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MM_DIR="${HOME}/MagicMirror"
-SERVER_IP="192.168.4.45"
-SERVER_PORT="8036"
-SCHEDULE_CONF="${SCRIPT_DIR}/schedule.conf"
+CONFIG_FILE="${SCRIPT_DIR}/config.conf"
 
-# Default schedule (if config file missing or invalid)
+# Default configuration (if config file missing or invalid)
 DEFAULT_MONDAY_FRIDAY="16:00-20:45"
 DEFAULT_SATURDAY_SUNDAY="08:00-20:45"
+DEFAULT_SERVER_IP="192.168.4.45"
+DEFAULT_SERVER_PORT="8036"
 
 # State tracking
 MM_PID=""
@@ -114,23 +114,26 @@ parse_time_range() {
 # Load schedule from config file
 load_schedule() {
 	debug_log "=== load_schedule() called ==="
-	debug_log "Config file path: $SCHEDULE_CONF"
+	debug_log "Config file path: $CONFIG_FILE"
 	
 	# Set defaults first
 	MONDAY_FRIDAY="$DEFAULT_MONDAY_FRIDAY"
 	SATURDAY_SUNDAY="$DEFAULT_SATURDAY_SUNDAY"
+	SERVER_IP="$DEFAULT_SERVER_IP"
+	SERVER_PORT="$DEFAULT_SERVER_PORT"
 	
 	# Try to load from file
-	if [[ -f "$SCHEDULE_CONF" ]]; then
+	if [[ -f "$CONFIG_FILE" ]]; then
 		debug_log "Config file found, attempting to load..."
 		# shellcheck disable=SC1090
-		source "$SCHEDULE_CONF" || {
-			error_log "Failed to parse $SCHEDULE_CONF, using defaults"
+		source "$CONFIG_FILE" || {
+			error_log "Failed to parse $CONFIG_FILE, using defaults"
 		}
 		debug_log "Config file loaded successfully"
 		debug_log "Loaded values: MONDAY_FRIDAY='$MONDAY_FRIDAY', SATURDAY_SUNDAY='$SATURDAY_SUNDAY'"
+		debug_log "Server settings: SERVER_IP='$SERVER_IP', SERVER_PORT='$SERVER_PORT'"
 	else
-		error_log "Schedule file not found: $SCHEDULE_CONF, using defaults"
+		error_log "Config file not found: $CONFIG_FILE, using defaults"
 	fi
 	
 	# Parse Monday-Friday schedule
@@ -168,6 +171,7 @@ load_schedule() {
 	fi
 	
 	log "Schedule loaded: Monday-Friday ${WEEKDAY_ON_HOUR}:$(printf '%02d' $WEEKDAY_ON_MIN)-${WEEKDAY_OFF_HOUR}:$(printf '%02d' $WEEKDAY_OFF_MIN), Saturday-Sunday ${WEEKEND_ON_HOUR}:$(printf '%02d' $WEEKEND_ON_MIN)-${WEEKEND_OFF_HOUR}:$(printf '%02d' $WEEKEND_OFF_MIN)"
+	log "Server: ${SERVER_IP}:${SERVER_PORT}"
 	debug_log "DEBUG mode: $DEBUG"
 	debug_log "=== load_schedule() completed ==="
 }

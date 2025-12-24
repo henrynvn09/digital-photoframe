@@ -33,13 +33,13 @@ Create a family digital photo frame that displays:
   - Single always-running service monitors schedule every 30 seconds
   - Automatically starts/stops MagicMirror based on configured times
   - **Default schedule**: Weekends 8:00 AM - 8:45 PM, Weekdays 4:00 PM - 8:45 PM
-  - Configurable via `client/schedule.conf`
+  - Configurable via `client/config.conf`
 - PIR motion sensor on GPIO pin 24 for smart display control
 - **Auto-restart on crash** (systemd service management)
 
 ### Display Power Management
 - PIR sensor detects motion and turns display on
-- 15-minute idle timeout before automatic shutdown
+- 5-minute idle timeout before automatic shutdown (configurable)
 - Uses vcgencmd for display power control
 - Event-driven architecture to minimize CPU usage
 
@@ -83,7 +83,7 @@ digital-photoframe/
 │   │   └── turn_off_display.sh# Manual display off script
 │   ├── systemd/
 │   │   └── digitalframe.service # Unified systemd service for scheduling
-│   ├── schedule.conf          # Schedule configuration (weekday/weekend times)
+│   ├── config.conf            # Main configuration file (schedule, server, PIR)
 │   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
 │   ├── check_server.sh        # Server connectivity checker
 │   ├── mm.sh                  # MagicMirror client startup script
@@ -198,16 +198,20 @@ sudo systemctl disable digitalframe.service
 - **Microsoft To-Do**: OAuth2 client ID, client secret, refresh token
 - **Google Calendar**: Calendar URL (private iCal link)
 
-### Network Configuration
-- Server IP: 192.168.4.45
-- Server Port: 8036
+### Configuration Details
+
+All user-configurable settings are centralized in `client/config.conf`:
+
+#### Network Configuration
+- **Server IP**: 192.168.4.45 (default, configurable)
+- **Server Port**: 8036 (default, configurable)
 - Raspberry Pi must be on same network
 - IP whitelist must include Pi's IP for remote access
 - Server connectivity is checked before MagicMirror starts (5 attempts, 3-second delay)
 
-### Schedule Configuration (Raspberry Pi)
+#### Schedule Configuration
 
-Schedule is configured in `client/schedule.conf` using time range format:
+Schedule is configured in `client/config.conf` using time range format:
 ```ini
 # Format: DAYRANGE=HH:MM-HH:MM (ON_TIME-OFF_TIME)
 MONDAY_FRIDAY=16:00-20:45
@@ -219,9 +223,9 @@ SATURDAY_SUNDAY=08:00-20:45
 - Schedule is checked every 30 seconds by the systemd service
 - Changes take effect after restarting the service: `sudo systemctl restart digitalframe.service`
 
-To modify schedule times:
+To modify configuration:
 ```bash
-nano ~/digital-photoframe/client/schedule.conf
+nano ~/digital-photoframe/client/config.conf
 sudo systemctl restart digitalframe.service
 ```
 
@@ -235,12 +239,18 @@ sudo systemctl restart digitalframe.service
   - `SATURDAY_SUNDAY=08:00-23:00` (8 AM to 11 PM on weekends)
   - `MONDAY_FRIDAY=09:00-17:00` (Standard 9-to-5 work hours)
 
-### PIR Sensor Configuration
-- GPIO Pin: 24
-- Shutoff Delay: 15 minutes (900 seconds)
-- vcgencmd path: /usr/bin/vcgencmd
-- Debug mode: Disabled by default
-- Event-driven: Uses gpiozero callbacks for efficiency
+#### PIR Sensor Configuration
+- **GPIO Pin**: 24 (default, configurable)
+- **Timeout**: 5 minutes (default, configurable via `PIR_TIMEOUT_MINUTES`)
+- **vcgencmd path**: /usr/bin/vcgencmd (hardcoded, standard location)
+- **Debug mode**: Controlled by global `DEBUG` flag
+- **Event-driven**: Uses gpiozero callbacks for efficiency
+
+Configuration example:
+```ini
+PIR_TIMEOUT_MINUTES=5  # Minutes of inactivity before display turns off
+PIR_GPIO_PIN=24        # GPIO pin (BCM numbering)
+```
 
 ## Vietnamese Language Settings
 
@@ -290,8 +300,9 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 - **Update photos**: Modify Immich query in config.js
 - **Add calendar**: Add new object to calendars array
 - **Change weather location**: Update latitude/longitude
-- **Adjust display timeout**: Modify SHUTOFF_DELAY in pir.py
-- **Change schedule**: Edit `client/schedule.conf` and restart service
+- **Adjust display timeout**: Modify `PIR_TIMEOUT_MINUTES` in `client/config.conf`
+- **Change schedule**: Edit `client/config.conf` and restart service
+- **Change server address**: Edit `SERVER_IP`/`SERVER_PORT` in `client/config.conf`
 
 ## Troubleshooting
 
@@ -379,13 +390,13 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 - With 64MB total log space and 3-day retention, debug logs will rotate very frequently
 - **IMPORTANT**: Only enable DEBUG=true temporarily (hours, not days)
 - Debug mode will fill the 64MB limit in ~20-30 minutes, causing constant rotation
-- Always disable after troubleshooting: Set `DEBUG=false` in `schedule.conf` and restart service
+- Always disable after troubleshooting: Set `DEBUG=false` in `config.conf` and restart service
 
 **Enable detailed diagnostic logging when troubleshooting scheduler issues:**
 
-1. **Edit schedule configuration:**
+1. **Edit configuration:**
    ```bash
-   nano ~/digital-photoframe/client/schedule.conf
+   nano ~/digital-photoframe/client/config.conf
    ```
 
 2. **Enable debug mode:**
@@ -425,7 +436,7 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 
 **IMPORTANT:** Disable debug mode after troubleshooting to reduce log verbosity:
 ```bash
-# Set DEBUG=false in schedule.conf
+# Set DEBUG=false in config.conf
 sudo systemctl restart digitalframe.service
 ```
 

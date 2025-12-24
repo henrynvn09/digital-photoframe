@@ -22,12 +22,23 @@ IFS=$'\n\t'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_DIR="${HOME}"
 MM_DIR="${HOME_DIR}/MagicMirror"
-CONFIG_DIR="${SCRIPT_DIR}"
-ADDRESS="192.168.4.45"
-PORT="8036"
+CONFIG_FILE="${SCRIPT_DIR}/config.conf"
 PID_DIR="/tmp"
 LOCK_DIR="/tmp/mm_instance.lock"
 PID_FILE="${PID_DIR}/mm_pids.txt"
+
+# Default values (fallback if config missing)
+ADDRESS="192.168.4.45"
+PORT="8036"
+
+# Load server settings from config file if available
+if [[ -f "$CONFIG_FILE" ]]; then
+	# shellcheck disable=SC1090
+	source "$CONFIG_FILE" 2>/dev/null || true
+	# Use SERVER_IP/SERVER_PORT from config if set
+	ADDRESS="${SERVER_IP:-$ADDRESS}"
+	PORT="${SERVER_PORT:-$PORT}"
+fi
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
@@ -148,7 +159,7 @@ fi
 
 # Check server connectivity before starting
 log "Checking MagicMirror server connectivity..."
-if ! "${CONFIG_DIR}/check_server.sh" 5 3; then
+if ! "${SCRIPT_DIR}/check_server.sh" 5 3; then
 	log "ERROR: Cannot reach MagicMirror server at ${ADDRESS}:${PORT}"
 	exit 1
 fi
@@ -229,7 +240,7 @@ fi
 
 # Start PIR controller
 if command -v python3 >/dev/null 2>&1; then
-	python3 "${CONFIG_DIR}/pir-control-display/pir.py" &
+	python3 "${SCRIPT_DIR}/pir-control-display/pir.py" &
 	PIR_PID=$!
 	
 	# Append PIR PID to same file
@@ -260,7 +271,7 @@ while true; do
 	# Check PIR if it was started
 	if [[ -n "${PIR_PID:-}" ]] && ! kill -0 "${PIR_PID}" 2>/dev/null; then
 		log "WARNING: PIR process (PID ${PIR_PID}) has exited, restarting..."
-		python3 "${CONFIG_DIR}/pir-control-display/pir.py" &
+		python3 "${SCRIPT_DIR}/pir-control-display/pir.py" &
 		PIR_PID=$!
 		
 		# Update PID file (remove old PIR line, add new one)

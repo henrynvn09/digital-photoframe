@@ -5,8 +5,20 @@
 
 set -euo pipefail
 
+# Load server settings from config file if available
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${SCRIPT_DIR}/config.conf"
+
+# Default values (fallback if config missing)
 SERVER_IP="192.168.4.45"
 SERVER_PORT="8036"
+
+# Try to load from config file
+if [[ -f "$CONFIG_FILE" ]]; then
+	# shellcheck disable=SC1090
+	source "$CONFIG_FILE" 2>/dev/null || true
+fi
+
 MAX_ATTEMPTS="${1:-5}"
 DELAY="${2:-3}"
 

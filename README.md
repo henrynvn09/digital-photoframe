@@ -164,16 +164,22 @@ sudo journalctl --vacuum-size=8M
 
 **Log retention**: Logs are automatically rotated and kept for 3 days with max 64MB disk usage (configured in `/etc/systemd/journald.conf.d/digitalframe.conf`).
 
-### Modify Schedule
+### Modify Configuration
 
-Edit the schedule configuration file:
+Edit the configuration file to change schedule, server settings, or PIR behavior:
 ```bash
-# Edit schedule times
-nano ~/digital-photoframe/client/schedule.conf
+# Edit configuration
+nano ~/digital-photoframe/client/config.conf
 
 # Restart service to apply changes
 sudo systemctl restart digitalframe.service
 ```
+
+**Available settings:**
+- **Schedule**: `MONDAY_FRIDAY` and `SATURDAY_SUNDAY` (HH:MM-HH:MM format)
+- **Server**: `SERVER_IP` and `SERVER_PORT` (your MagicMirror server address)
+- **PIR Sensor**: `PIR_TIMEOUT_MINUTES` (default: 5) and `PIR_GPIO_PIN` (default: 24)
+- **Debug Mode**: `DEBUG` (true/false - only enable when troubleshooting)
 
 ### Log Management
 
@@ -211,12 +217,19 @@ sudo journalctl --vacuum-size=8M  # Limit to 64MB total
 
 ### Configuration
 
-Edit `client/pir-control-display/pir.py`:
+The PIR sensor settings are configured in `client/config.conf`:
 
-```python
-SHUTOFF_DELAY = 15 * 60  # seconds (15 minutes)
-PIR_PIN = 24             # GPIO pin number
-DEBUG = False            # Set to True for verbose logging
+```ini
+# Minutes of inactivity before turning off display (default: 5)
+PIR_TIMEOUT_MINUTES=5
+
+# GPIO pin number for PIR sensor - BCM numbering (default: 24)
+PIR_GPIO_PIN=24
+```
+
+After changing settings, restart the service:
+```bash
+sudo systemctl restart digitalframe.service
 ```
 
 ### Testing PIR Sensor
@@ -285,8 +298,8 @@ systemctl status digitalframe.service
 If your digital photo frame isn't working as expected, enable debug logging:
 
 ```bash
-# 1. Edit schedule config
-nano ~/digital-photoframe/client/schedule.conf
+# 1. Edit config file
+nano ~/digital-photoframe/client/config.conf
 
 # 2. Change DEBUG=false to DEBUG=true
 # 3. Save and exit (Ctrl+X, Y, Enter)
@@ -306,7 +319,8 @@ Debug logs will show exactly what the scheduler is doing every 30 seconds, helpi
 
 **Remember to disable debug mode after troubleshooting** to keep logs clean:
 ```bash
-# Set DEBUG=false in schedule.conf, then restart service
+# Set DEBUG=false in config.conf, then restart service
+sudo systemctl restart digitalframe.service
 ```
 
 ### View Detailed Error Logs
@@ -342,7 +356,7 @@ digital-photoframe/
 │   ├── pir-control-display/
 │   │   ├── pir.py             # PIR motion sensor script
 │   │   └── turn_*_display.sh  # Manual display control
-│   ├── schedule.conf          # Schedule configuration (weekday/weekend times)
+│   ├── config.conf            # Main configuration (schedule, server, PIR settings)
 │   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
 │   ├── setup_client.sh        # Automated setup script
 │   ├── check_server.sh        # Server connectivity checker
@@ -357,40 +371,56 @@ digital-photoframe/
 
 ## Configuration
 
-### Server IP and Port
+All settings are centralized in `client/config.conf`. After making changes, restart the service:
 
-Default: `192.168.4.45:8036`
+```bash
+nano ~/digital-photoframe/client/config.conf
+sudo systemctl restart digitalframe.service
+```
 
-To change, edit these files:
-- `client/check_server.sh` (lines 6-7)
-- `client/mm.sh` (lines 6-7)
-- `client/turn_on_magic_mirror.sh` (lines 13-14)
+### Available Settings
 
-### Schedule Times
+#### Display Schedule
 
 Default schedule:
 - **Monday-Friday**: 16:00 to 20:45 (4:00 PM to 8:45 PM)
 - **Saturday-Sunday**: 08:00 to 20:45 (8:00 AM to 8:45 PM)
 
-To change schedule times:
-```bash
-nano ~/digital-photoframe/client/schedule.conf
-
-# Edit the time ranges (HH:MM-HH:MM format):
+```ini
+# Edit time ranges (HH:MM-HH:MM format, 24-hour clock)
 MONDAY_FRIDAY=16:00-20:45
 SATURDAY_SUNDAY=08:00-20:45
-
-# Restart service
-sudo systemctl restart digitalframe.service
 ```
 
-### PIR Timeout
+#### Server Connection
 
-Default: 15 minutes
+Default: `192.168.4.45:8036`
 
-Edit `client/pir-control-display/pir.py`:
-```python
-SHUTOFF_DELAY = 15 * 60  # Change to desired seconds
+```ini
+# Change to match your MagicMirror server
+SERVER_IP=192.168.4.45
+SERVER_PORT=8036
+```
+
+#### PIR Motion Sensor
+
+Default: 5-minute timeout on GPIO pin 24
+
+```ini
+# Minutes before display turns off (no motion detected)
+PIR_TIMEOUT_MINUTES=5
+
+# GPIO pin (BCM numbering) - only change if using different pin
+PIR_GPIO_PIN=24
+```
+
+#### Debug Mode
+
+Default: `false` (disabled)
+
+```ini
+# Enable detailed logging (WARNING: generates 15-30 MB/day)
+DEBUG=false
 ```
 
 ---

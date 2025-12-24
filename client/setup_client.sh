@@ -16,8 +16,10 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 MM_DIR="${HOME}/MagicMirror"
-SERVER_IP="192.168.4.45"
-SERVER_PORT="8036"
+
+# These will be set by configure_schedule() function
+SERVER_IP=""
+SERVER_PORT=""
 
 # Flags to track what was installed
 INSTALLED_DEPS=false
@@ -299,18 +301,30 @@ setup_scripts() {
 test_server() {
     print_header "Testing Server Connectivity"
     
-    print_info "Running connectivity test to ${SERVER_IP}:${SERVER_PORT}..."
+    # Use defaults if not yet configured
+    local test_ip="${SERVER_IP:-192.168.4.45}"
+    local test_port="${SERVER_PORT:-8036}"
+    
+    print_info "Running connectivity test to ${test_ip}:${test_port}..."
+    print_info "(You can customize server settings in the next step)"
+    echo ""
     
     if [[ -x "$SCRIPT_DIR/check_server.sh" ]]; then
-        if "$SCRIPT_DIR/check_server.sh" 3 2; then
+        # Temporarily set for check_server.sh
+        SERVER_IP="$test_ip" SERVER_PORT="$test_port" "$SCRIPT_DIR/check_server.sh" 3 2
+        local result=$?
+        
+        if [[ $result -eq 0 ]]; then
             print_success "Server connectivity test passed!"
         else
-            print_error "Cannot connect to MagicMirror server"
+            print_error "Cannot connect to MagicMirror server at ${test_ip}:${test_port}"
             print_info "Please ensure:"
             print_info "  1. Your NAS is powered on"
             print_info "  2. MagicMirror Docker container is running"
             print_info "  3. Network connection is active"
-            print_info "  4. Server IP is correct: $SERVER_IP"
+            print_info "  4. Server IP is correct (default: ${test_ip})"
+            echo ""
+            print_info "You can specify a different server IP in the next configuration step"
             
             if ! ask_yes_no "Continue anyway?"; then
                 exit 1
@@ -359,8 +373,37 @@ EOF
 # ============================================================================
 
 configure_schedule() {
-    print_header "Configure Display Schedule"
+    print_header "Configure Display Settings"
     
+    # Ask for setup mode
+    echo ""
+    print_info "Choose setup mode:"
+    echo ""
+    echo "  [1] Basic setup (recommended)"
+    echo "      • Configure display schedule only"
+    echo "      • Uses standard defaults for server and PIR"
+    echo "      • Quick 2-minute setup"
+    echo ""
+    echo "  [2] Advanced setup"
+    echo "      • Customize all settings"
+    echo "      • Server IP/port, PIR timeout, GPIO pin"
+    echo "      • For experienced users"
+    echo ""
+    
+    local setup_mode
+    while true; do
+        read -rp "Choose mode [1]: " setup_mode
+        setup_mode="${setup_mode:-1}"
+        case "$setup_mode" in
+            1) break ;;
+            2) break ;;
+            *) echo "Please enter 1 or 2" ;;
+        esac
+    done
+    
+    # === Schedule Configuration (both modes) ===
+    echo ""
+    print_header "Display Schedule"
     print_info "Default schedule:"
     print_info "  Monday-Friday: 16:00 to 20:45 (4:00 PM to 8:45 PM)"
     print_info "  Saturday-Sunday: 08:00 to 20:45 (8:00 AM to 8:45 PM)"
@@ -386,10 +429,41 @@ configure_schedule() {
         SATURDAY_SUNDAY="08:00-20:45"
     fi
     
-    # Ask about debug mode
+    # === Advanced Settings (mode 2 only) ===
+    if [[ "$setup_mode" == "2" ]]; then
+        echo ""
+        print_header "Server Connection Settings"
+        print_info "The Raspberry Pi connects to this server to display MagicMirror"
+        echo ""
+        
+        read -rp "Server IP address (default 192.168.4.45): " server_ip_input
+        SERVER_IP="${server_ip_input:-192.168.4.45}"
+        
+        read -rp "Server port (default 8036): " server_port_input
+        SERVER_PORT="${server_port_input:-8036}"
+        
+        echo ""
+        print_header "PIR Motion Sensor Settings"
+        print_info "The PIR sensor automatically turns the display on/off based on motion"
+        echo ""
+        
+        read -rp "Timeout in minutes before display turns off (default 5): " pir_timeout_input
+        PIR_TIMEOUT_MINUTES="${pir_timeout_input:-5}"
+        
+        read -rp "GPIO pin number for PIR sensor - BCM numbering (default 24): " pir_pin_input
+        PIR_GPIO_PIN="${pir_pin_input:-24}"
+    else
+        # Basic mode - use defaults
+        SERVER_IP="192.168.4.45"
+        SERVER_PORT="8036"
+        PIR_TIMEOUT_MINUTES="5"
+        PIR_GPIO_PIN="24"
+    fi
+    
+    # === Debug Mode (both modes) ===
     echo ""
     print_info "Debug mode provides detailed diagnostic output for troubleshooting."
-    print_warning "Debug logs can be very verbose. Only enable if troubleshooting issues."
+    print_warning "Debug logs can be very verbose (15-30 MB/day). Only enable if troubleshooting issues."
     
     if ask_yes_no "Enable debug mode?" "n"; then
         DEBUG_MODE="true"
@@ -399,27 +473,59 @@ configure_schedule() {
         print_info "Debug mode disabled - only essential logs will be shown"
     fi
     
-    # Create schedule.conf
-    print_info "Creating schedule configuration..."
-    cat > "${SCRIPT_DIR}/schedule.conf" << EOF
-# MagicMirror Schedule Configuration
+    # === Create config.conf ===
+    print_info "Creating configuration file..."
+    cat > "${SCRIPT_DIR}/config.conf" << EOF
+# ============================================================================
+# MagicMirror Digital Photo Frame Configuration
+# ============================================================================
 # Generated by setup_client.sh on $(date)
-# Format: DAYRANGE=HH:MM-HH:MM (ON_TIME-OFF_TIME)
+# 
+# After changing this file, restart the service:
+#   sudo systemctl restart digitalframe.service
+# ============================================================================
 
-# Debug mode - set to 'true' for detailed diagnostic logs
-DEBUG=$DEBUG_MODE
+# === Display Schedule ===
+# Format: DAYRANGE=HH:MM-HH:MM (ON_TIME-OFF_TIME in 24-hour format)
 
 # Monday through Friday schedule (ON_TIME-OFF_TIME)
 MONDAY_FRIDAY=$MONDAY_FRIDAY
 
 # Saturday and Sunday schedule (ON_TIME-OFF_TIME)
 SATURDAY_SUNDAY=$SATURDAY_SUNDAY
+
+# === Server Connection ===
+# MagicMirror server address (typically your NAS or server)
+
+SERVER_IP=$SERVER_IP
+SERVER_PORT=$SERVER_PORT
+
+# === PIR Motion Sensor ===
+# Automatic display power management based on motion detection
+
+# Minutes of inactivity before turning off display
+PIR_TIMEOUT_MINUTES=$PIR_TIMEOUT_MINUTES
+
+# GPIO pin number for PIR sensor - BCM numbering
+PIR_GPIO_PIN=$PIR_GPIO_PIN
+
+# === Debug Mode ===
+# Enable detailed diagnostic logging for troubleshooting
+# WARNING: Debug mode generates 15-30 MB of logs per day!
+
+DEBUG=$DEBUG_MODE
+
+# ============================================================================
+# For more information, see README.md
+# ============================================================================
 EOF
     
-    print_success "Schedule configured:"
-    print_info "  Monday-Friday: $MONDAY_FRIDAY"
-    print_info "  Saturday-Sunday: $SATURDAY_SUNDAY"
+    print_success "Configuration complete:"
+    print_info "  Schedule: Monday-Friday $MONDAY_FRIDAY, Saturday-Sunday $SATURDAY_SUNDAY"
+    print_info "  Server: ${SERVER_IP}:${SERVER_PORT}"
+    print_info "  PIR timeout: ${PIR_TIMEOUT_MINUTES} minutes (GPIO pin ${PIR_GPIO_PIN})"
     print_info "  Debug mode: $DEBUG_MODE"
+    print_info "  Config file: ${SCRIPT_DIR}/config.conf"
     echo ""
 }
 

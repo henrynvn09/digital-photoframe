@@ -5,16 +5,24 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MM_DIR="${HOME}/MagicMirror"
+CONFIG_FILE="${SCRIPT_DIR}/config.conf"
+
+# Default values (fallback if config missing)
 SERVER_IP="192.168.4.45"
 SERVER_PORT="8036"
-CONFIG_DIR="${SCRIPT_DIR}"
+
+# Load server settings from config file if available
+if [[ -f "$CONFIG_FILE" ]]; then
+	# shellcheck disable=SC1090
+	source "$CONFIG_FILE" 2>/dev/null || true
+fi
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
 # Check if server is reachable before starting
-if [[ -f "${CONFIG_DIR}/check_server.sh" ]]; then
+if [[ -f "${SCRIPT_DIR}/check_server.sh" ]]; then
 	log "Checking server connectivity before starting..."
-	if ! "${CONFIG_DIR}/check_server.sh" 5 3; then
+	if ! "${SCRIPT_DIR}/check_server.sh" 5 3; then
 		log "ERROR: MagicMirror server at ${SERVER_IP}:${SERVER_PORT} is not reachable!"
 		exit 1
 	fi
