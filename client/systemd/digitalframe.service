@@ -1,0 +1,23 @@
+[Unit]
+Description=Digital Photo Frame Scheduled Display with PIR Control
+After=graphical.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/__USER__/.Xauthority"
+Environment="XDG_RUNTIME_DIR=/run/user/__UID__"
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=/bin/bash __INSTALL_DIR__/magicmirror-manager.sh
+Restart=always
+RestartSec=60s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=digitalframe
+
+[Install]
+WantedBy=graphical.target

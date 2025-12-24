@@ -1,5 +1,5 @@
 #!/bin/bash
-# save as /home/pi/display_off.sh
+# Manual display control - Turn off HDMI display
 export DISPLAY=:0
 
 # Turn off HDMI display
