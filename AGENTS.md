@@ -87,6 +87,7 @@ digital-photoframe/
 │   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
 │   ├── check_server.sh        # Server connectivity checker
 │   ├── mm.sh                  # MagicMirror client startup script
+│   ├── force_on_now.sh        # Interactive force ON/OFF toggle script
 │   ├── turn_on_magic_mirror.sh# Start MagicMirror client + PIR
 │   └── turn_off_magic_mirror.sh# Stop MagicMirror client + PIR
 ├── .gitmodules                # Git submodules configuration
@@ -118,6 +119,13 @@ npm install
 
 #### Manual Control (Debug/Testing)
 ```bash
+# Force MagicMirror ON now (interactive toggle)
+./client/force_on_now.sh
+# - If override inactive: Prompts to force ON until scheduled OFF time
+# - If override active: Prompts to remove override and return to normal schedule
+# - Requires confirmation (default YES on Enter)
+# - Validates time (rejects if past today's OFF time)
+
 # Start MagicMirror and PIR manually
 ./client/turn_on_magic_mirror.sh
 
@@ -130,6 +138,9 @@ npm install
 
 # Check server connectivity
 ./client/check_server.sh
+
+# Check if override is active
+ls -l /tmp/digital_photoframe_force_on_override 2>/dev/null && echo "Override ACTIVE" || echo "Override INACTIVE"
 ```
 
 #### Systemd Service (Automatic Scheduling)
@@ -297,6 +308,8 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 - Bottom-right image info positioned at bottom: 400px, right: 100px
 
 ### Common Tasks
+- **Force start immediately**: Run `./client/force_on_now.sh` to start now and stay on until scheduled OFF time
+- **Cancel force-on**: Run `./client/force_on_now.sh` again to toggle off the override
 - **Update photos**: Modify Immich query in config.js
 - **Add calendar**: Add new object to calendars array
 - **Change weather location**: Update latitude/longitude
@@ -380,6 +393,34 @@ When modifying headers or adding new modules, maintain consistency with Vietname
    vcgencmd display_power  # Check current state
    vcgencmd display_power 1  # Turn on
    vcgencmd display_power 0  # Turn off
+   ```
+
+### Force-On Override Not Working
+
+**Symptoms:** Ran `force_on_now.sh` but MagicMirror doesn't start
+
+**Solutions:**
+1. Check if override file exists:
+   ```bash
+   ls -l /tmp/digital_photoframe_force_on_override
+   ```
+
+2. Check manager service status:
+   ```bash
+   systemctl status digitalframe.service
+   ```
+
+3. Check manager logs for override detection:
+   ```bash
+   journalctl -u digitalframe.service -n 50 | grep -i override
+   ```
+
+4. Wait up to 30 seconds for manager's next check cycle
+
+5. If past today's OFF time, error is expected:
+   ```bash
+   # Check current schedule
+   cat ~/digital-photoframe/client/config.conf | grep -E "MONDAY|SATURDAY"
    ```
 
 ### Debugging with Debug Mode

@@ -176,6 +176,25 @@ load_schedule() {
 	debug_log "=== load_schedule() completed ==="
 }
 
+# Check if override file exists
+# Returns 0 (true) if override is active
+# Returns 1 (false) if no override
+check_override() {
+	local override_file="/tmp/digital_photoframe_force_on_override"
+	
+	debug_log ">>> check_override() called"
+	
+	if [[ -f "$override_file" ]]; then
+		debug_log "Override file exists: forcing ON"
+		debug_log "<<< check_override() returning 0 (active)"
+		return 0
+	else
+		debug_log "No override file found"
+		debug_log "<<< check_override() returning 1 (no override)"
+		return 1
+	fi
+}
+
 # Check if MagicMirror should be running based on schedule
 # Returns 0 (true) if should be ON, 1 (false) if should be OFF
 should_be_running() {
@@ -183,6 +202,14 @@ should_be_running() {
 	
 	debug_log ">>> should_be_running() called"
 	
+	# FIRST: Check for override (takes precedence over schedule's ON time)
+	if check_override; then
+		debug_log "Override is active: forcing ON state"
+		debug_log "<<< should_be_running() returning 0 (OVERRIDE)"
+		return 0
+	fi
+	
+	# THEN: Normal schedule logic
 	hour=$(date +%H)
 	minute=$(date +%M)
 	day=$(date +%u)  # 1=Mon, 2=Tue, ... 6=Sat, 7=Sun
@@ -313,6 +340,13 @@ start_magicmirror() {
 stop_magicmirror() {
 	debug_log ">>> stop_magicmirror() called"
 	log "Stopping MagicMirror..."
+	
+	# Remove override file if it exists (automatic cleanup at OFF time)
+	if [[ -f "/tmp/digital_photoframe_force_on_override" ]]; then
+		log "Removing force-on override (scheduled OFF time reached)"
+		rm -f "/tmp/digital_photoframe_force_on_override"
+		debug_log "Override file removed"
+	fi
 	
 	# Stop PIR first (so it doesn't try to turn display back on)
 	if [[ -n "$PIR_PID" ]] && kill -0 "$PIR_PID" 2>/dev/null; then

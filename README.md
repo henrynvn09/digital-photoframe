@@ -116,6 +116,55 @@ docker restart magicmirror
 
 ## Usage
 
+### Force Start Now
+
+Want to turn on the display immediately, even outside scheduled hours?
+
+```bash
+~/digital-photoframe/client/force_on_now.sh
+```
+
+**What it does:**
+- Starts MagicMirror immediately (within 30 seconds)
+- Keeps it running until the next scheduled OFF time
+- Interactive prompt with confirmation (default YES on Enter)
+- Automatically returns to normal schedule after OFF time
+
+**Example usage:**
+
+```bash
+$ ~/digital-photoframe/client/force_on_now.sh
+
+[2025-12-26 14:30:15] No override currently active
+[2025-12-26 14:30:15] MagicMirror is following normal schedule
+
+Do you want to FORCE ON now and keep it on until scheduled OFF time? [Y/n]: ↵
+[2025-12-26 14:30:17] ✓ Override activated
+[2025-12-26 14:30:17]   Display turned on immediately
+[2025-12-26 14:30:17]   MagicMirror will start within 30 seconds
+[2025-12-26 14:30:17]   Will stay ON until scheduled OFF time
+```
+
+**To cancel the override:**
+
+Run the same command again - it detects the current state and prompts you to remove the override:
+
+```bash
+$ ~/digital-photoframe/client/force_on_now.sh
+
+[2025-12-26 14:35:20] Override is currently ACTIVE
+[2025-12-26 14:35:20] MagicMirror is forced ON until scheduled OFF time
+
+Do you want to REMOVE the override and return to normal schedule? [Y/n]: ↵
+[2025-12-26 14:35:22] ✓ Override removed
+[2025-12-26 14:35:22]   MagicMirror will follow normal schedule
+[2025-12-26 14:35:22]   Changes take effect within 30 seconds
+```
+
+**Limitations:**
+- Cannot force ON if current time is past today's scheduled OFF time
+- Changes take effect within 30 seconds (manager check interval)
+
 ### Manual Control (Debug/Testing Only)
 
 The manual scripts are provided for debugging and testing purposes. For regular operation, use systemd scheduling (configured during setup).
@@ -361,6 +410,7 @@ digital-photoframe/
 │   ├── setup_client.sh        # Automated setup script
 │   ├── check_server.sh        # Server connectivity checker
 │   ├── mm.sh                  # MagicMirror client launcher
+│   ├── force_on_now.sh        # Interactive force ON/OFF toggle script
 │   ├── turn_on_magic_mirror.sh   # Start script
 │   └── turn_off_magic_mirror.sh  # Stop script
 ├── AGENTS.md                  # Detailed technical documentation
