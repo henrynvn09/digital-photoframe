@@ -87,7 +87,7 @@ digital-photoframe/
 │   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
 │   ├── check_server.sh        # Server connectivity checker
 │   ├── mm.sh                  # MagicMirror client startup script
-│   ├── force_on_now.sh        # Interactive force ON/OFF toggle script
+│   ├── start_early.sh         # Start MagicMirror early (before scheduled time)
 │   ├── turn_on_magic_mirror.sh# Start MagicMirror client + PIR
 │   └── turn_off_magic_mirror.sh# Stop MagicMirror client + PIR
 ├── .gitmodules                # Git submodules configuration
@@ -119,10 +119,11 @@ npm install
 
 #### Manual Control (Debug/Testing)
 ```bash
-# Force MagicMirror ON now (interactive toggle)
-./client/force_on_now.sh
-# - If override inactive: Prompts to force ON until scheduled OFF time
-# - If override active: Prompts to remove override and return to normal schedule
+# Start MagicMirror early (before scheduled ON time)
+./client/start_early.sh
+# - Before scheduled time: Prompts to start early until scheduled OFF time
+# - Inside schedule window: Shows "no action needed" message
+# - If override active: Prompts to cancel early start
 # - Requires confirmation (default YES on Enter)
 # - Validates time (rejects if past today's OFF time)
 
@@ -139,8 +140,8 @@ npm install
 # Check server connectivity
 ./client/check_server.sh
 
-# Check if override is active
-ls -l /tmp/digital_photoframe_force_on_override 2>/dev/null && echo "Override ACTIVE" || echo "Override INACTIVE"
+# Check if early start override is active
+ls -l /tmp/force_on_override 2>/dev/null && echo "Override ACTIVE" || echo "Override INACTIVE"
 ```
 
 #### Systemd Service (Automatic Scheduling)
@@ -308,8 +309,8 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 - Bottom-right image info positioned at bottom: 400px, right: 100px
 
 ### Common Tasks
-- **Force start immediately**: Run `./client/force_on_now.sh` to start now and stay on until scheduled OFF time
-- **Cancel force-on**: Run `./client/force_on_now.sh` again to toggle off the override
+- **Start early**: Run `./client/start_early.sh` to start before scheduled ON time
+- **Cancel early start**: Run `./client/start_early.sh` again to remove the override
 - **Update photos**: Modify Immich query in config.js
 - **Add calendar**: Add new object to calendars array
 - **Change weather location**: Update latitude/longitude
@@ -395,14 +396,14 @@ When modifying headers or adding new modules, maintain consistency with Vietname
    vcgencmd display_power 0  # Turn off
    ```
 
-### Force-On Override Not Working
+### Early Start Override Not Working
 
-**Symptoms:** Ran `force_on_now.sh` but MagicMirror doesn't start
+**Symptoms:** Ran `start_early.sh` but MagicMirror doesn't start
 
 **Solutions:**
 1. Check if override file exists:
    ```bash
-   ls -l /tmp/digital_photoframe_force_on_override
+   ls -l /tmp/force_on_override
    ```
 
 2. Check manager service status:
@@ -417,7 +418,11 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 
 4. Wait up to 30 seconds for manager's next check cycle
 
-5. If past today's OFF time, error is expected:
+5. If inside schedule window, no action is taken:
+   - Script shows "no action needed" message
+   - This is expected behavior (display should already be on)
+
+6. If past today's OFF time, error is expected:
    ```bash
    # Check current schedule
    cat ~/digital-photoframe/client/config.conf | grep -E "MONDAY|SATURDAY"

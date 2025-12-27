@@ -116,54 +116,115 @@ docker restart magicmirror
 
 ## Usage
 
-### Force Start Now
+### Start Early
 
-Want to turn on the display immediately, even outside scheduled hours?
+Want to turn on the display before the scheduled time?
 
 ```bash
-~/digital-photoframe/client/force_on_now.sh
+~/digital-photoframe/client/start_early.sh
 ```
 
 **What it does:**
-- Starts MagicMirror immediately (within 30 seconds)
+- Starts MagicMirror early (before scheduled ON time)
 - Keeps it running until the next scheduled OFF time
-- Interactive prompt with confirmation (default YES on Enter)
+- Interactive prompt with full status and schedule details
+- Shows "no action needed" if already within schedule window
 - Automatically returns to normal schedule after OFF time
 
-**Example usage:**
+**Example usage (starting early):**
 
 ```bash
-$ ~/digital-photoframe/client/force_on_now.sh
+$ ~/digital-photoframe/client/start_early.sh
 
-[2025-12-26 14:30:15] No override currently active
-[2025-12-26 14:30:15] MagicMirror is following normal schedule
+═══════════════════════════════════════════════════════════════════════════════
+                               STATUS
+═══════════════════════════════════════════════════════════════════════════════
+Current time:     14:30 (2:30 PM)
+Override status:  Inactive (following normal schedule)
+MagicMirror:      OFF (waiting for scheduled ON time)
 
-Do you want to FORCE ON now and keep it on until scheduled OFF time? [Y/n]: ↵
-[2025-12-26 14:30:17] ✓ Override activated
-[2025-12-26 14:30:17]   Display turned on immediately
+═══════════════════════════════════════════════════════════════════════════════
+                            TODAY'S SCHEDULE
+═══════════════════════════════════════════════════════════════════════════════
+Scheduled ON:     16:00 (4:00 PM)  →  in 1h 30m
+Scheduled OFF:    20:45 (8:45 PM)
+
+═══════════════════════════════════════════════════════════════════════════════
+                            PROPOSED ACTION
+═══════════════════════════════════════════════════════════════════════════════
+Start MagicMirror NOW and keep it running until scheduled OFF time
+
+This will:
+  • Turn on the display immediately
+  • Start MagicMirror within 30 seconds
+  • Keep running until 20:45 (8:45 PM) today
+  • Then automatically return to normal schedule
+
+Do you want to START EARLY? [Y/n]: ↵
+[2025-12-26 14:30:17] ✓ Early start activated
 [2025-12-26 14:30:17]   MagicMirror will start within 30 seconds
-[2025-12-26 14:30:17]   Will stay ON until scheduled OFF time
 ```
 
-**To cancel the override:**
+**To cancel early start:**
 
-Run the same command again - it detects the current state and prompts you to remove the override:
+Run the same command again - it detects the current state and prompts you to cancel:
 
 ```bash
-$ ~/digital-photoframe/client/force_on_now.sh
+$ ~/digital-photoframe/client/start_early.sh
 
-[2025-12-26 14:35:20] Override is currently ACTIVE
-[2025-12-26 14:35:20] MagicMirror is forced ON until scheduled OFF time
+═══════════════════════════════════════════════════════════════════════════════
+                               STATUS
+═══════════════════════════════════════════════════════════════════════════════
+Current time:     14:35 (2:35 PM)
+Override status:  ACTIVE (started early)
+MagicMirror:      ON (forced until scheduled OFF time)
 
-Do you want to REMOVE the override and return to normal schedule? [Y/n]: ↵
-[2025-12-26 14:35:22] ✓ Override removed
-[2025-12-26 14:35:22]   MagicMirror will follow normal schedule
-[2025-12-26 14:35:22]   Changes take effect within 30 seconds
+═══════════════════════════════════════════════════════════════════════════════
+                            PROPOSED ACTION
+═══════════════════════════════════════════════════════════════════════════════
+Cancel early start and return to normal schedule
+
+This will:
+  • Remove the early start override
+  • MagicMirror will stop (outside scheduled hours)
+  • Return to normal automatic scheduling
+  • Changes take effect within 30 seconds
+
+Do you want to CANCEL early start? [Y/n]: ↵
+[2025-12-26 14:35:22] ✓ Early start cancelled
+[2025-12-26 14:35:22]   Returning to normal schedule
+```
+
+**Inside schedule window:**
+
+If you run the script during scheduled hours, it shows:
+
+```bash
+$ ~/digital-photoframe/client/start_early.sh
+
+═══════════════════════════════════════════════════════════════════════════════
+                               STATUS
+═══════════════════════════════════════════════════════════════════════════════
+Current time:     17:00 (5:00 PM)
+MagicMirror:      ON (within scheduled hours)
+
+═══════════════════════════════════════════════════════════════════════════════
+                            TODAY'S SCHEDULE
+═══════════════════════════════════════════════════════════════════════════════
+Scheduled ON:     16:00 (4:00 PM)  →  PASSED 1h ago
+Scheduled OFF:    20:45 (8:45 PM)  →  in 3h 45m
+
+═══════════════════════════════════════════════════════════════════════════════
+                          NO ACTION NEEDED
+═══════════════════════════════════════════════════════════════════════════════
+MagicMirror is already running according to schedule.
+No need to start early - you're within the scheduled time window.
 ```
 
 **Limitations:**
-- Cannot force ON if current time is past today's scheduled OFF time
+- Cannot start early if current time is past today's scheduled OFF time
 - Changes take effect within 30 seconds (manager check interval)
+- During scheduled hours, script shows informational message only
 
 ### Manual Control (Debug/Testing Only)
 
@@ -410,7 +471,7 @@ digital-photoframe/
 │   ├── setup_client.sh        # Automated setup script
 │   ├── check_server.sh        # Server connectivity checker
 │   ├── mm.sh                  # MagicMirror client launcher
-│   ├── force_on_now.sh        # Interactive force ON/OFF toggle script
+│   ├── start_early.sh         # Start MagicMirror early (before scheduled time)
 │   ├── turn_on_magic_mirror.sh   # Start script
 │   └── turn_off_magic_mirror.sh  # Stop script
 ├── AGENTS.md                  # Detailed technical documentation
