@@ -4,8 +4,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLIENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MM_DIR="${HOME}/MagicMirror"
-CONFIG_FILE="${SCRIPT_DIR}/config.conf"
+CONFIG_FILE="${CLIENT_DIR}/config.conf"
 
 # Default values (fallback if config missing)
 SERVER_IP="192.168.4.45"
@@ -20,14 +21,14 @@ fi
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
 # Check if server is reachable before starting
-if [[ -f "${SCRIPT_DIR}/check_server.sh" ]]; then
+if [[ -f "${CLIENT_DIR}/scripts/server-check.sh" ]]; then
 	log "Checking server connectivity before starting..."
-	if ! "${SCRIPT_DIR}/check_server.sh" 5 3; then
+	if ! "${CLIENT_DIR}/scripts/server-check.sh" 5 3; then
 		log "ERROR: MagicMirror server at ${SERVER_IP}:${SERVER_PORT} is not reachable!"
 		exit 1
 	fi
 else
-	log "Warning: check_server.sh not found, skipping connectivity check"
+	log "Warning: server-check.sh not found, skipping connectivity check"
 fi
 
 # Prepare config/env for Electron client-only viewer

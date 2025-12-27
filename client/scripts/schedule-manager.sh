@@ -12,8 +12,9 @@ trap 'error_log "Command failed at line $LINENO: $BASH_COMMAND"' ERR
 
 # Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLIENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MM_DIR="${HOME}/MagicMirror"
-CONFIG_FILE="${SCRIPT_DIR}/config.conf"
+CONFIG_FILE="${CLIENT_DIR}/config.conf"
 
 # Default configuration (if config file missing or invalid)
 DEFAULT_MONDAY_FRIDAY="16:00-20:45"
@@ -264,16 +265,16 @@ start_magicmirror() {
 	fi
 	
 	# Check server connectivity
-	if [[ -f "${SCRIPT_DIR}/check_server.sh" ]]; then
+	if [[ -f "${CLIENT_DIR}/scripts/server-check.sh" ]]; then
 		debug_log "Checking server connectivity: ${SERVER_IP}:${SERVER_PORT}"
-		if ! "${SCRIPT_DIR}/check_server.sh" 10 5; then
+		if ! "${CLIENT_DIR}/scripts/server-check.sh" 10 5; then
 			error_log "Server not reachable at ${SERVER_IP}:${SERVER_PORT}, will retry later"
 			debug_log "<<< start_magicmirror() failed (server unreachable)"
 			return 1
 		fi
 		debug_log "Server connectivity check passed"
 	else
-		debug_log "Warning: check_server.sh not found, skipping connectivity check"
+		debug_log "Warning: server-check.sh not found, skipping connectivity check"
 	fi
 	
 	# Start MagicMirror
@@ -316,10 +317,10 @@ start_magicmirror() {
 	debug_log "MagicMirror process verified alive"
 	
 	# Start PIR controller
-	if [[ -f "${SCRIPT_DIR}/pir-control-display/pir.py" ]]; then
+	if [[ -f "${CLIENT_DIR}/pir-control-display/pir.py" ]]; then
 		if command -v python3 >/dev/null 2>&1; then
 			debug_log "Starting PIR control script..."
-			python3 "${SCRIPT_DIR}/pir-control-display/pir.py" &
+			python3 "${CLIENT_DIR}/pir-control-display/pir.py" &
 			PIR_PID=$!
 			log "PIR control started (PID: $PIR_PID)"
 			debug_log "PIR process PID: $PIR_PID"
@@ -327,7 +328,7 @@ start_magicmirror() {
 			debug_log "Warning: python3 not found, PIR control not started"
 		fi
 	else
-		debug_log "Warning: pir.py not found at ${SCRIPT_DIR}/pir-control-display/pir.py"
+		debug_log "Warning: pir.py not found at ${CLIENT_DIR}/pir-control-display/pir.py"
 	fi
 	
 	CURRENT_STATE="ON"
@@ -426,8 +427,8 @@ check_health() {
 	# Check PIR (auto-restart if crashed)
 	if [[ -n "$PIR_PID" ]] && ! kill -0 "$PIR_PID" 2>/dev/null; then
 		log "Warning: PIR crashed (PID $PIR_PID no longer exists), restarting..."
-		if [[ -f "${SCRIPT_DIR}/pir-control-display/pir.py" ]] && command -v python3 >/dev/null 2>&1; then
-			python3 "${SCRIPT_DIR}/pir-control-display/pir.py" &
+		if [[ -f "${CLIENT_DIR}/pir-control-display/pir.py" ]] && command -v python3 >/dev/null 2>&1; then
+			python3 "${CLIENT_DIR}/pir-control-display/pir.py" &
 			PIR_PID=$!
 			log "PIR control restarted (PID: $PIR_PID)"
 		else

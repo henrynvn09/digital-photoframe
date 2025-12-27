@@ -77,19 +77,22 @@ digital-photoframe/
 │   └── css/
 │       └── custom.css         # Custom styling for modules
 ├── client/
+│   ├── scripts/
+│   │   ├── schedule-manager.sh  # Schedule monitor and lifecycle manager
+│   │   ├── mm-launcher.sh       # MagicMirror client launcher
+│   │   └── server-check.sh      # Server connectivity checker
 │   ├── pir-control-display/
 │   │   ├── pir.py             # PIR motion sensor control script
 │   │   ├── turn_on_display.sh # Manual display on script
 │   │   └── turn_off_display.sh# Manual display off script
 │   ├── systemd/
-│   │   └── digitalframe.service # Unified systemd service for scheduling
+│   │   ├── digitalframe.service # Unified systemd service for scheduling
+│   │   └── journald-config.md   # Journald logging configuration docs
 │   ├── config.conf            # Main configuration file (schedule, server, PIR)
-│   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
-│   ├── check_server.sh        # Server connectivity checker
-│   ├── mm.sh                  # MagicMirror client startup script
+│   ├── config.conf.sample     # Configuration template
+│   ├── setup_client.sh        # Automated setup script
 │   ├── start_early.sh         # Start MagicMirror early (before scheduled time)
-│   ├── turn_on_magic_mirror.sh# Start MagicMirror client + PIR
-│   └── turn_off_magic_mirror.sh# Stop MagicMirror client + PIR
+│   └── uninstall.sh           # Uninstall script
 ├── .gitmodules                # Git submodules configuration
 ├── AGENTS.md                  # This file
 └── README.md                  # User documentation
@@ -127,18 +130,12 @@ npm install
 # - Requires confirmation (default YES on Enter)
 # - Validates time (rejects if past today's OFF time)
 
-# Start MagicMirror and PIR manually
-./client/turn_on_magic_mirror.sh
-
-# Stop MagicMirror and PIR
-./client/turn_off_magic_mirror.sh
-
-# Manual display control
+# Manual display control (PIR sensor bypass)
 ./client/pir-control-display/turn_on_display.sh
 ./client/pir-control-display/turn_off_display.sh
 
 # Check server connectivity
-./client/check_server.sh
+./client/scripts/server-check.sh
 
 # Check if early start override is active
 ls -l /tmp/force_on_override 2>/dev/null && echo "Override ACTIVE" || echo "Override INACTIVE"
@@ -312,6 +309,11 @@ When modifying headers or adding new modules, maintain consistency with Vietname
 - **Start early**: Run `./client/start_early.sh` to start before scheduled ON time
 - **Cancel early start**: Run `./client/start_early.sh` again to remove the override
 - **Update photos**: Modify Immich query in config.js
+- **Add calendar**: Add new object to calendars array
+- **Change weather location**: Update latitude/longitude
+- **Adjust display timeout**: Modify `PIR_TIMEOUT_MINUTES` in `client/config.conf`
+- **Change schedule**: Edit `client/config.conf` and restart service
+- **Change server address**: Edit `SERVER_IP`/`SERVER_PORT` in `client/config.conf`
 - **Add calendar**: Add new object to calendars array
 - **Change weather location**: Update latitude/longitude
 - **Adjust display timeout**: Modify `PIR_TIMEOUT_MINUTES` in `client/config.conf`

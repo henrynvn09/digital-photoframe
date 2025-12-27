@@ -233,18 +233,19 @@ The manual scripts are provided for debugging and testing purposes. For regular 
 Run these commands from your shell:
 
 ```bash
-# Start MagicMirror and PIR sensor
-~/digital-photoframe/client/turn_on_magic_mirror.sh
-
-# Stop MagicMirror and PIR sensor
-~/digital-photoframe/client/turn_off_magic_mirror.sh
+# Start MagicMirror early (before scheduled time)
+~/digital-photoframe/client/start_early.sh
 
 # Check server connectivity
-~/digital-photoframe/client/check_server.sh
+~/digital-photoframe/client/scripts/server-check.sh
 
-# Manual display control
+# Manual display control (PIR sensor bypass)
 ~/digital-photoframe/client/pir-control-display/turn_on_display.sh
 ~/digital-photoframe/client/pir-control-display/turn_off_display.sh
+
+# Emergency systemd control
+sudo systemctl start digitalframe.service  # Start scheduler
+sudo systemctl stop digitalframe.service   # Stop everything
 ```
 
 ### View Logs
@@ -369,7 +370,7 @@ python3 ~/digital-photoframe/client/pir-control-display/pir.py
 
 ```bash
 # Test server connectivity (adjust path to your installation)
-~/digital-photoframe/client/check_server.sh
+~/digital-photoframe/client/scripts/server-check.sh
 
 # Check if server is reachable
 nc -zv 192.168.4.45 8036
@@ -462,18 +463,20 @@ digital-photoframe/
 │       └── custom.css         # Custom styling
 ├── client/
 │   ├── systemd/
-│   │   └── digitalframe.service  # Unified systemd service
+│   │   ├── digitalframe.service  # Unified systemd service
+│   │   └── journald-config.md    # Journald logging docs
+│   ├── scripts/
+│   │   ├── schedule-manager.sh   # Schedule monitor and lifecycle manager
+│   │   ├── mm-launcher.sh        # MagicMirror client launcher
+│   │   └── server-check.sh       # Server connectivity checker
 │   ├── pir-control-display/
 │   │   ├── pir.py             # PIR motion sensor script
 │   │   └── turn_*_display.sh  # Manual display control
 │   ├── config.conf            # Main configuration (schedule, server, PIR settings)
-│   ├── magicmirror-manager.sh # Schedule monitor and lifecycle manager
+│   ├── config.conf.sample     # Configuration template
 │   ├── setup_client.sh        # Automated setup script
-│   ├── check_server.sh        # Server connectivity checker
-│   ├── mm.sh                  # MagicMirror client launcher
 │   ├── start_early.sh         # Start MagicMirror early (before scheduled time)
-│   ├── turn_on_magic_mirror.sh   # Start script
-│   └── turn_off_magic_mirror.sh  # Stop script
+│   └── uninstall.sh           # Uninstall script
 ├── AGENTS.md                  # Detailed technical documentation
 └── README.md                  # This file
 ```

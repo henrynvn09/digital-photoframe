@@ -480,9 +480,9 @@ show_past_off_time_error() {
 	log ""
 	log "MagicMirror will start automatically at that time."
 	log ""
-	log "For manual control right now, use:"
-	log "  ./turn_on_magic_mirror.sh   (start now, manual control)"
-	log "  ./turn_off_magic_mirror.sh  (stop manually)"
+	log "For immediate control (advanced):"
+	log "  sudo systemctl start digitalframe.service   (start scheduler now)"
+	log "  sudo systemctl stop digitalframe.service    (stop everything)"
 }
 
 # Prompt user for confirmation (default YES on Enter)

@@ -7,7 +7,8 @@ set -euo pipefail
 
 # Load server settings from config file if available
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/config.conf"
+CLIENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_FILE="${CLIENT_DIR}/config.conf"
 
 # Default values (fallback if config missing)
 SERVER_IP="192.168.4.45"

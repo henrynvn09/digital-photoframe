@@ -274,10 +274,10 @@ setup_scripts() {
     print_header "Setting Up Scripts"
     
     local scripts=(
-        "$SCRIPT_DIR/check_server.sh"
-        "$SCRIPT_DIR/mm.sh"
-        "$SCRIPT_DIR/turn_on_magic_mirror.sh"
-        "$SCRIPT_DIR/turn_off_magic_mirror.sh"
+        "$SCRIPT_DIR/scripts/server-check.sh"
+        "$SCRIPT_DIR/scripts/mm-launcher.sh"
+        "$SCRIPT_DIR/scripts/schedule-manager.sh"
+        "$SCRIPT_DIR/start_early.sh"
         "$SCRIPT_DIR/pir-control-display/turn_on_display.sh"
         "$SCRIPT_DIR/pir-control-display/turn_off_display.sh"
     )
@@ -309,9 +309,9 @@ test_server() {
     print_info "(You can customize server settings in the next step)"
     echo ""
     
-    if [[ -x "$SCRIPT_DIR/check_server.sh" ]]; then
+    if [[ -x "$SCRIPT_DIR/scripts/server-check.sh" ]]; then
         # Temporarily set for check_server.sh
-        SERVER_IP="$test_ip" SERVER_PORT="$test_port" "$SCRIPT_DIR/check_server.sh" 3 2
+        SERVER_IP="$test_ip" SERVER_PORT="$test_port" "$SCRIPT_DIR/scripts/server-check.sh" 3 2
         local result=$?
         
         if [[ $result -eq 0 ]]; then
@@ -331,7 +331,7 @@ test_server() {
             fi
         fi
     else
-        print_warning "check_server.sh not found, skipping test"
+        print_warning "server-check.sh not found, skipping test"
     fi
     
     echo ""
@@ -707,8 +707,8 @@ print_summary() {
     
     if [[ "$SCHEDULING_METHOD" == "none" ]]; then
         print_info "✓ Manual control only (no automatic scheduling)"
-        print_info "  - Start: ${SCRIPT_DIR}/turn_on_magic_mirror.sh"
-        print_info "  - Stop: ${SCRIPT_DIR}/turn_off_magic_mirror.sh"
+        print_info "  - Start early: ${SCRIPT_DIR}/start_early.sh"
+        print_info "  - Or use: sudo systemctl start digitalframe.service"
     fi
     
     echo ""
@@ -722,8 +722,8 @@ print_summary() {
     
     echo ""
     print_info "Manual Control Commands:"
-    echo "  Start:  $SCRIPT_DIR/turn_on_magic_mirror.sh"
-    echo "  Stop:   $SCRIPT_DIR/turn_off_magic_mirror.sh"
+    echo "  Start early:  $SCRIPT_DIR/start_early.sh"
+    echo "  View config:  cat $SCRIPT_DIR/config.conf"
     echo ""
     
     if [[ "$INSTALLED_SYSTEMD" == true ]]; then
@@ -740,7 +740,7 @@ print_summary() {
     fi
     
     print_info "Troubleshooting:"
-    echo "  Server test:     $SCRIPT_DIR/check_server.sh"
+    echo "  Server test:     $SCRIPT_DIR/scripts/server-check.sh"
     echo "  View logs:       journalctl -fu digitalframe.service"
     echo "  Documentation:   $REPO_ROOT/AGENTS.md"
     echo ""
@@ -803,8 +803,8 @@ EOF
         configure_systemd
     else
         print_info "Skipping automatic scheduling (manual control only)"
-        print_info "To start MagicMirror manually: ${SCRIPT_DIR}/turn_on_magic_mirror.sh"
-        print_info "To stop MagicMirror manually: ${SCRIPT_DIR}/turn_off_magic_mirror.sh"
+        print_info "To start MagicMirror early: ${SCRIPT_DIR}/start_early.sh"
+        print_info "Or use systemd: sudo systemctl start digitalframe.service"
         echo ""
     fi
     
